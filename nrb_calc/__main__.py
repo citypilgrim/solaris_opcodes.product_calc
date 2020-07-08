@@ -6,6 +6,7 @@ import numpy as np
 
 from ..cali_profiles import cali_profiles
 from ...decorators import *
+from ...file_readwrite import mpl_reader, smmpl_reader
 from ...params import *
 
 
@@ -41,7 +42,7 @@ def main(
 
     Parameters
         lidarname (str): directory name of lidar
-        mplfiledir (str): mplfile to be processed if specified, date should be 
+        mplfiledir (str): mplfile to be processed if specified, date should be
                           None
         date (datetime like): if specified only reads files within this directory
         start/endtime (datetime like): approx start/end time of data of interest
@@ -64,6 +65,11 @@ def main(
             delNRB1/2_tra (np.array): shape (time dim, no. range bins)
             SNR1/2_tra (np.array): shape (time dim, no. range bins)
     '''
+    # checking which lidar we are dealing with
+    smmpl_boo = (mplreader is smmpl_reader)
+
+
+    # computation
     if genboo:
         # read .mpl files
         mpl_d = mplreader(
@@ -122,11 +128,12 @@ def main(
                 for raa in cali_raal
             ]
 
+        
         # change dtype of channels to cope for D_func calculation
         n1_tra = n1_tra.astype(np.float64)
         n2_tra = n2_tra.astype(np.float64)
 
-
+        
         # pre calc derived quantities
         P1_tra = n1_tra * D_func(n1_tra)
         P2_tra = n2_tra * D_func(n2_tra)
@@ -178,8 +185,8 @@ def main(
             + delOcs_tra/(Oc_tra**2)
         )
 
-
-        # writing to file
+        
+        # Storing data
         ret_d = {
             'Timestamp':ts_ta,
             'DeltNbin_a':DeltNbin_a,
@@ -193,6 +200,12 @@ def main(
             'SNR1_tra':NRB1_tra/delNRB2_tra,
             'SNR2_tra':NRB2_tra/delNRB2_tra,
         }
+        if smmpl_boo:
+            ret_d['Azimuth Angle'] = mpl_d['Azimuth Angle']
+            ret_d['Elevation Angle'] = mpl_d['Elevation Angle']
+
+            
+        # writing to file
         if writeboo:
             ret_d = {
                 key:ret_d[key].tolist() for key in list(ret_d.keys())
@@ -202,6 +215,7 @@ def main(
                                NRBDIR.format(starttime, endtime)),
                       'w') as json_file:
                 json_file.write(json.dumps(ret_d))
+                
 
     else:                       # reading from file
         with open(osp.join(SOLARISMPLDIR.format(lidarname),
