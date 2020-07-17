@@ -2,7 +2,7 @@
 import numpy as np
 import pandas as pd
 
-from ...params import *
+from ...globalimports import *
 
 
 # main func

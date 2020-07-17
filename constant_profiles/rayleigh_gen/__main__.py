@@ -5,8 +5,7 @@ import netCDF4 as nc
 import numpy as np
 from scipy.integrate import cumtrapz
 
-from ....decorators import *
-from ....params import *
+from ....globalimports import *
 
 
 # static params

@@ -1,6 +1,5 @@
 # imports
-from ..decorators import *
-from ..params import *
+from ..globalimports import *
 
 # main func
 @annoucer

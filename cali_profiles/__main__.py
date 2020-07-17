@@ -10,8 +10,7 @@ from .afterpulse_csvgen import main as afterpulse_gen
 from .overlap_csvgen import main as overlap_gen
 # from .afterpulse_mplgen import main as afterpulse_gen # not implemented
 # from .overlap_mplgen import main as overlap_gen
-from ...decorators import *
-from ...params import *
+from ...globalimports import *
 
 
 # supp func

@@ -5,9 +5,8 @@ import os.path as osp
 import numpy as np
 
 from ..cali_profiles import cali_profiles
-from ...decorators import *
 from ...file_readwrite import mpl_reader, smmpl_reader
-from ...params import *
+from ...globalimports import *
 
 
 # supp func
@@ -64,6 +63,9 @@ def main(
             NRB1/2_tra (np.array): shape (time dim, no. range bins)
             delNRB1/2_tra (np.array): shape (time dim, no. range bins)
             SNR1/2_tra (np.array): shape (time dim, no. range bins)
+            theta/phi_ta (np.array): [rad] if smmpl_boo,
+                                     spherical coordinates of data, angular offset
+                                     corrected
     '''
     # checking which lidar we are dealing with
     smmpl_boo = (mplreader is smmpl_reader)
@@ -128,12 +130,12 @@ def main(
                 for raa in cali_raal
             ]
 
-        
+
         # change dtype of channels to cope for D_func calculation
         n1_tra = n1_tra.astype(np.float64)
         n2_tra = n2_tra.astype(np.float64)
 
-        
+
         # pre calc derived quantities
         P1_tra = n1_tra * D_func(n1_tra)
         P2_tra = n2_tra * D_func(n2_tra)
@@ -185,7 +187,7 @@ def main(
             + delOcs_tra/(Oc_tra**2)
         )
 
-        
+
         # Storing data
         ret_d = {
             'Timestamp':ts_ta,
@@ -201,10 +203,10 @@ def main(
             'SNR2_tra':NRB2_tra/delNRB2_tra,
         }
         if smmpl_boo:
-            ret_d['Azimuth Angle'] = mpl_d['Azimuth Angle']
+            ret_d['Azimuth Angle'] = np.deg2rad(mpl_d['Azimuth Angle'])
             ret_d['Elevation Angle'] = mpl_d['Elevation Angle']
 
-            
+
         # writing to file
         if writeboo:
             ret_d = {
@@ -215,7 +217,7 @@ def main(
                                NRBDIR.format(starttime, endtime)),
                       'w') as json_file:
                 json_file.write(json.dumps(ret_d))
-                
+
 
     else:                       # reading from file
         with open(osp.join(SOLARISMPLDIR.format(lidarname),

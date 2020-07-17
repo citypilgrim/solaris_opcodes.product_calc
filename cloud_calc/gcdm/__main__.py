@@ -4,8 +4,7 @@ import numpy as np
 from scipy.interpolate import interp1d
 
 from ...constant_profiles import rayleigh_gen
-from ....decorators import *
-from ....params import *
+from ....globalimports import *
 
 
 # supp func

@@ -4,7 +4,7 @@ import numpy as np
 from scipy.signal import savgol_filter
 from scipy.optimize import curve_fit
 
-from ...params import *
+from ...globalimports import *
 
 
 # main func
