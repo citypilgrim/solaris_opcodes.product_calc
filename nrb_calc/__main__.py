@@ -203,8 +203,10 @@ def main(
             'SNR2_tra':NRB2_tra/delNRB2_tra,
         }
         if smmpl_boo:
-            ret_d['Azimuth Angle'] = np.deg2rad(mpl_d['Azimuth Angle'])
-            ret_d['Elevation Angle'] = mpl_d['Elevation Angle']
+            ret_d['Azimuth Angle'] = np.deg2rad(mpl_d['Azimuth Angle'])\
+                - np.deg2rad(ANGOFFSET)
+            ret_d['Elevation Angle'] = np.pi/2\
+                - np.deg2rad(mpl_d['Elevation Angle'])
 
 
         # writing to file
