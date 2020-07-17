@@ -63,6 +63,6 @@ if __name__ == '__main__':
     Dsnstr = osp.basename(D_dir)[:DEADTIMEMODELIND]
     Dcoeff_fn = DEADTIMEPROFILE.format(Dsnstr, lidarname)
     np.savetxt(
-        osp.join(CALIPROFILESDIR, Dcoeff_fn),
+        DIRCONFN(CALIPROFILESDIR, Dcoeff_fn),
         Dcoeff_a, fmt='%{}.{}e'.format(1, CALIWRITESIGFIG-1)
     )

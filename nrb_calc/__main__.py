@@ -214,7 +214,7 @@ def main(
             ret_d = {
                 key:ret_d[key].tolist() for key in list(ret_d.keys())
             }
-            with open(osp.join(SOLARISMPLDIR.format(lidarname),
+            with open(DIRCONFN(SOLARISMPLDIR.format(lidarname),
                                DATEFMT.format(starttime),
                                NRBDIR.format(starttime, endtime)),
                       'w') as json_file:
@@ -222,7 +222,7 @@ def main(
 
 
     else:                       # reading from file
-        with open(osp.join(SOLARISMPLDIR.format(lidarname),
+        with open(DIRCONFN(SOLARISMPLDIR.format(lidarname),
                                DATEFMT.format(starttime),
                                NRBDIR.format(starttime, endtime)),
                   ) as json_file:
@@ -241,7 +241,7 @@ if __name__ == '__main__':
     from ...file_readwrite import mpl_reader
 
     lidarname = 'mpl_S2S'
-    mplfile_dir = osp.join(osp.dirname(osp.abspath(__file__)),
+    mplfile_dir = DIRCONFN(osp.dirname(osp.abspath(__file__)),
                            'testNRB_mpl_S2S.mpl')
     starttime, endtime = None, None
     ret_d = main(

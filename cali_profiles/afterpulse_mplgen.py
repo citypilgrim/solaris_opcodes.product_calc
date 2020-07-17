@@ -251,7 +251,7 @@ if __name__ == '__main__':
         napOE_fn = AFTERPULSEPROFILE.format(napOEdate, Delt,
                                             Nbin, lidarname)
         np.savetxt(
-            osp.join(CALIPROFILESDIR, napOE_fn),
+            DIRCONFN(CALIPROFILESDIR, napOE_fn),
             napOE_raa, fmt='%{}.{}e'.format(1, CALIWRITESIGFIG-1)
         )
 

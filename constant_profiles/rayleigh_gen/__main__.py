@@ -1,6 +1,4 @@
 # imports
-import os.path as osp
-
 import netCDF4 as nc
 import numpy as np
 from scipy.integrate import cumtrapz
@@ -17,7 +15,7 @@ _mollidrat = np.pi*8/3   # molecular lidar ratio
 @announcer
 def main(
         Delt, Nbin,
-        genboo=True,        
+        genboo=True,
         weather=WEATHER, wavelength=WAVELENGTH
 ):
     '''
@@ -40,7 +38,7 @@ def main(
     # generate profile
     if genboo:
         # reading scattering coefficient file
-        ray_file = osp.join(RAYLEIGHPROFILEDIR,
+        ray_file = DIRCONFN(RAYLEIGHPROFILEDIR,
                             RAYLEIGHCDFDIR.format(RAYLEIGHCDLAMBDA))
         rayscatdat_nc = nc.Dataset(ray_file, 'r', format='NETNC4_CLASSIC')
         ncr_ra = rayscatdat_nc.variables['range'][:]
@@ -63,7 +61,7 @@ def main(
 
         # writing to file
         np.savetxt(
-            osp.join(RAYLEIGHPROFILEDIR,
+            DIRCONFN(RAYLEIGHPROFILEDIR,
                      RAYLEIGHPROFILE.format(weather, wavelength, Delt, Nbin)),
             [betam_ra, Tm2_ra, betamprime_ra]
         )
@@ -76,7 +74,7 @@ def main(
     # reading from exisiting file
     else:
         return np.loadtxt(
-            osp.join(RAYLEIGHPROFILEDIR,
+            DIRCONFN(RAYLEIGHPROFILEDIR,
                      RAYLEIGHPROFILE.format(weather, wavelength, Delt, Nbin))
         )
 

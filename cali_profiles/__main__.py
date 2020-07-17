@@ -132,15 +132,15 @@ def main(
             Dcoeff_fn, napOE_fn, Oc_fn
         ))
         np.savetxt(
-            osp.join(CALIPROFILESDIR, Dcoeff_fn),
+            DIRCONFN(CALIPROFILESDIR, Dcoeff_fn),
             Dcoeff_a, fmt='%{}.{}e'.format(1, CALIWRITESIGFIG-1)
         )
         np.savetxt(
-            osp.join(CALIPROFILESDIR, napOE_fn),
+            DIRCONFN(CALIPROFILESDIR, napOE_fn),
             napOE_raa, fmt='%{}.{}e'.format(1, CALIWRITESIGFIG-1)
         )
         np.savetxt(
-            osp.join(CALIPROFILESDIR, Oc_fn),
+            DIRCONFN(CALIPROFILESDIR, Oc_fn),
             Oc_raa, fmt='%{}.{}e'.format(1, CALIWRITESIGFIG-1)
         )
 
