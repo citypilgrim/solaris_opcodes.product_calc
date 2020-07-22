@@ -192,7 +192,7 @@ def main(mplreader,
         '''compute error propagation for exponential'''
 
     elif compstr == 'b':
-        delm2sigma, dellnCbeta = np.sqrt(np.diag(lrlnPHpcov))        
+        delm2sigma, dellnCbeta = np.sqrt(np.diag(lrlnPHpcov))
 
     elif compstr == 'c':
         pass
@@ -245,10 +245,9 @@ if __name__ == '__main__':
     # testing
     mplreader = smmpl_reader
     lidarname = 'smmpl_E2'
-    D_d = glob(
-        CALIPROFILESDIR + '/*' + DEADTIMEPROFILE[DEADTIMEPROIND:]
-        .format(lidarname)
-    )[0]
+
+    D_d = FINDFILESFN(DEADTIMEPROFILE, CALIPROFILESDIR,
+                      {DTLIDARNAMEFIELD: lidarname})[0]
     _, D_f = deadtime_genread(D_d, genboo=False)
 
     mpl_d = '/home/tianli/SOLAR_EMA_project/data/smmpl_E2/calibration/201910170400_2e-7afterpulse.mpl'

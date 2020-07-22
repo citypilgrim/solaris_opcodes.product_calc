@@ -230,10 +230,9 @@ if __name__ == '__main__':
             lidarname, mpl_d = 'mpl_S2S', '/home/tianli/SOLAR_EMA_project/data/mpl_S2S/calibration/201907161201_5e-7afterpulse.mpl'
             mplreader = mpl_reader
 
-        D_d = glob(
-            CALIPROFILESDIR + '/*' + DEADTIMEPROFILE[DEADTIMEPROIND:]
-            .format(lidarname)
-        )[0]
+        D_d = FINDFILESFN(DEADTIMEPROFILE, CALIPROFILESDIR,
+                          {DTLIDARNAMEFIELD: lidarname})[0]
+
         _, D_f = deadtime_genread(D_d, genboo=False)
         napOEr_ra, napOE1_ra, napOE2_ra, delnapOE1s_ra, delnapOE2s_ra =\
             main(mplreader, lidarname, mpl_d, D_f)
@@ -247,7 +246,7 @@ if __name__ == '__main__':
             np.interp(r_ra, napOEr_ra, delnapOE2s_ra**0.5),  # uncert co-pol
         ])
         # writing to file
-        napOEdate = pd.Timestamp(osp.basename(mpl_d)[:AFTERPULSETIMEIND])
+        napOEdate = pd.Timestamp(DIRPARSEFN(mpl_d, AFTERPULSETIMEFIELD))
         napOE_fn = AFTERPULSEPROFILE.format(napOEdate, Delt,
                                             Nbin, lidarname)
         np.savetxt(
@@ -262,10 +261,8 @@ if __name__ == '__main__':
 
         lidarname, mpl_fn = 'mpl_S2S', '/home/tianli/SOLAR_EMA_project/data/mpl_S2S/calibration/201909231105_5e-7afterpulse.mpl'
 
-        D_d = glob(
-            CALIPROFILESDIR + '/*' + DEADTIMEPROFILE[DEADTIMEPROIND:]
-            .format(lidarname)
-        )[0]
+        D_d = FINDFILESFN(DEADTIMEPROFILE, CALIPROFILESDIR,
+                          {DTLIDARNAMEFIELD: lidarname})[0]
         _, D_f = deadtime_genread(D_d, genboo=False)
 
         # plotting to test

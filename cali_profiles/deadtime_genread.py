@@ -53,14 +53,12 @@ if __name__ == '__main__':
     else:
         lidarname, mpl_d = 'mpl_S2S', '/home/tianli/SOLAR_EMA_project/data/mpl_S2S/calibration/SPCM26086deadtime.txt'
 
-
-    D_dirl = glob(SOLARISMPLCALIDIR.format(lidarname)
-                  + '/*' + DEADTIMEFILE[DEADTIMEMODELIND:])
+    D_dirl = FINDFILESFN(DEADTIMEPROFILE, CALIPROFILESDIR)
     D_dirl.sort(key=osp.getmtime)
     D_dir = D_dirl[-1]
     Dcoeff_a, D_f = main(D_dir, genboo=True)
 
-    Dsnstr = osp.basename(D_dir)[:DEADTIMEMODELIND]
+    Dsnstr = DIRPARSEFN(D_dir, fieldsli=DTSNFIELD)
     Dcoeff_fn = DEADTIMEPROFILE.format(Dsnstr, lidarname)
     np.savetxt(
         DIRCONFN(CALIPROFILESDIR, Dcoeff_fn),

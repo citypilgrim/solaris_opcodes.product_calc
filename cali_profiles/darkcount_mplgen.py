@@ -107,7 +107,6 @@ if __name__ == '__main__':
     Notes on calculation found in logbook dated 20200518
     '''
     # imports
-    from glob import glob
     from .deadtime_genread import main as deadtime_genread
     from ...file_readwrite import mpl_reader
 
@@ -115,10 +114,8 @@ if __name__ == '__main__':
     '''compare day and night deadcount measurements'''
     lidarname, mpl_fn = 'mpl_S2S', '/home/tianli/SOLAR_EMA_project/data/mpl_S2S/calibration/202003261205_5e-7darkcount.mpl'
 
-    D_d = glob(
-        CALIPROFILESDIR + '/*' + DEADTIMEPROFILE[DEADTIMEPROIND:]\
-        .format(lidarname)
-    )[0]
+    D_d = FINDFILESFN(DEADTIMEPROFILE, CALIPROFILESDIR,
+                      {DTLIDARNAMEFIELD: lidarname})[0]
     _, D_f = deadtime_genread(D_d, genboo=False)
 
     # plotting to test

@@ -1,5 +1,4 @@
 # imports
-from glob import glob
 import os.path as osp
 
 import pandas as pd
@@ -12,12 +11,6 @@ from .overlap_csvgen import main as overlap_gen
 # from .overlap_mplgen import main as overlap_gen
 from ...globalimports import *
 
-
-# supp func
-def _tsfromfn_ff(timeind):
-    def tsfromfn_f(fn):
-        return pd.Timestamp(osp.basename(fn)[:timeind])
-    return tsfromfn_f
 
 # main func
 @verbose
@@ -74,22 +67,22 @@ def main(
     # generating profile
     if genboo:
         # retrieve filelist
-        napOE_dirlst = glob(SOLARISMPLCALIDIR.format(lidarname)\
-                          + '/*' + AFTERPULSEFILE[AFTERPULSENAMEIND:])
-        Oc_dirlst = glob(SOLARISMPLCALIDIR.format(lidarname)\
-                         + '/*' + OVERLAPFILE[OVERLAPNAMEIND:])
-        D_dirlst = glob(SOLARISMPLCALIDIR.format(lidarname)\
-                           + '/*' + DEADTIMEFILE[DEADTIMEMODELIND:])
-        napOE_dirlst.sort(key=_tsfromfn_ff(AFTERPULSETIMEIND))
-        Oc_dirlst.sort(key=_tsfromfn_ff(OVERLAPTIMEIND))
+        napOE_dirlst = FINDFILESFN(AFTERPULSEFILE,
+                                   SOLARISMPLCALIDIR.format(lidarname))
+        Oc_dirlst = FINDFILESFN(OVERLAPFILE,
+                                SOLARISMPLCALIDIR.format(lidarname))
+        D_dirlst = FINDFILESFN(DEADTIMEFILE,
+                               SOLARISMPLCALIDIR.format(lidarname))
+        napOE_dirlst.sort(key=DIRPARSEFN(AFTERPULSETIMEFIELD))
+        Oc_dirlst.sort(key=DIRPARSEFN(OVERLAPTIMEFIELD))
         D_dirlst.sort(key=osp.getmtime)
         ## retrieve latest file
         napOE_dir = napOE_dirlst[-1]
-        napOEdate = pd.Timestamp(osp.basename(napOE_dir)[:AFTERPULSETIMEIND])
+        napOEdate = pd.Timestamp(DIRPARSEFN(napOE_dir, AFTERPULSETIMEFIELD))
         Oc_dir = Oc_dirlst[-1]
-        Ocdate = pd.Timestamp(osp.basename(Oc_dir)[:OVERLAPTIMEIND])
+        Ocdate = pd.Timestamp(DIRPARSEFN(Oc_dir, OVERLAPTIMEFIELD))
         D_dir = D_dirlst[-1]
-        Dsnstr = osp.basename(D_dir)[:DEADTIMEMODELIND]
+        Dsnstr = DIRPARSEFN(D_dir, DTSNFIELD)
 
         # generatig profiles
         print('generating calibration files from:\n\t{}\n\t{}\n\t{}'.format(
@@ -150,18 +143,16 @@ def main(
     # quick return of calibration output
     else:
         # retrieving filenames
-        napOE_dir = glob(
-            CALIPROFILESDIR + '/*' + AFTERPULSEPROFILE[AFTERPULSEPROTIMEIND:]
-            .format(Delt, Nbin, lidarname)
-        )[0]
-        Oc_dir = glob(
-            CALIPROFILESDIR + '/*' + OVERLAPPROFILE[OVERLAPPROTIMEIND:]
-            .format(Delt, Nbin, lidarname)
-        )[0]
-        D_dir = glob(
-            CALIPROFILESDIR + '/*' + DEADTIMEPROFILE[DEADTIMEPROIND:]
-            .format(lidarname)
-        )[0]
+        napOE_dir = FINDFILESFN(AFTERPULSEPROFILE, CALIPROFILESDIR,
+                                {AFTPROBINTIMEFIELD: Delt,
+                                 AFTPROBINNUMFIELD: Nbin,
+                                 AFTLIDARNAMEFIELD: lidarname})[0]
+        Oc_dir = FINDFILESFN(OVERPULSEPROFILE, CALIPROFILESDIR,
+                             {OVERPROBINTIMEFIELD: Delt,
+                              OVERPROBINNUMFIELD: Nbin,
+                              OVERLIDARNAMEFIELD: lidarname})[0]
+        D_dir = FINDFILESFN(DEADTIMEPROFILE, CALIPROFILESDIR,
+                            {DTLIDARNAMEFIELD: lidarname})[0]
 
         # read file
         print('reading calibration files from:\n\t{}\n\t{}\n\t{}'.format(
@@ -178,7 +169,7 @@ def main(
         ]
         return ret_l
 
-    
+
 # running
 if __name__ == '__main__':
     from ...file_readwrite import smmplfmt_dic
