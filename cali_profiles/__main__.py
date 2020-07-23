@@ -118,9 +118,9 @@ def main(
 
         # write to file
         Dcoeff_fn = DEADTIMEPROFILE.format(Dsnstr, lidarname)
-        napOE_fn = AFTERPULSEPROFILE.format(napOEdate, Delt,
+        napOE_fn = AFTPROFILE.format(napOEdate, Delt,
                                             Nbin, lidarname)
-        Oc_fn = OVERLAPPROFILE.format(Ocdate, Delt, Nbin, lidarname)
+        Oc_fn = OVERPROFILE.format(Ocdate, Delt, Nbin, lidarname)
         print('writing calibration files:\n\t{}\n\t{}\n\t{}'.format(
             Dcoeff_fn, napOE_fn, Oc_fn
         ))
@@ -143,14 +143,14 @@ def main(
     # quick return of calibration output
     else:
         # retrieving filenames
-        napOE_dir = FINDFILESFN(AFTERPULSEPROFILE, CALIPROFILESDIR,
+        napOE_dir = FINDFILESFN(AFTPROFILE, CALIPROFILESDIR,
                                 {AFTPROBINTIMEFIELD: Delt,
                                  AFTPROBINNUMFIELD: Nbin,
-                                 AFTLIDARNAMEFIELD: lidarname})[0]
-        Oc_dir = FINDFILESFN(OVERPULSEPROFILE, CALIPROFILESDIR,
+                                 AFTPROLIDARNAMEFIELD: lidarname})[0]
+        Oc_dir = FINDFILESFN(OVERPROFILE, CALIPROFILESDIR,
                              {OVERPROBINTIMEFIELD: Delt,
                               OVERPROBINNUMFIELD: Nbin,
-                              OVERLIDARNAMEFIELD: lidarname})[0]
+                              OVERPROLIDARNAMEFIELD: lidarname})[0]
         D_dir = FINDFILESFN(DEADTIMEPROFILE, CALIPROFILESDIR,
                             {DTLIDARNAMEFIELD: lidarname})[0]
 
@@ -184,8 +184,8 @@ if __name__ == '__main__':
     r_ra = Delr * np.arange(2000) + Delr/2 + 0
 
     import matplotlib.pyplot as plt
-    nap_dir = '/home/tianli/SOLAR_EMA_project/data/smmpl_E2/calibration/201910170400_2e-7afterpulse.csv'
-    Oc_dir = '/home/tianli/SOLAR_EMA_project/data/smmpl_E2/calibration/201910230900_2e-7overlap.csv'
+    nap_dir = '/home/tianli/SOLAR_EMA_project/data/smmpl_E2/calibration/201910170400_2e-7_afterpulse.csv'
+    Oc_dir = '/home/tianli/SOLAR_EMA_project/data/smmpl_E2/calibration/201910230900_2e-7_overlap.csv'
     onapOE_raa = pd.read_csv(nap_dir, header=1).to_numpy().T
     oOc_raa = pd.read_csv(Oc_dir, header=0).to_numpy().T
 

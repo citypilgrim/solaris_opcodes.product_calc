@@ -247,7 +247,7 @@ if __name__ == '__main__':
         ])
         # writing to file
         napOEdate = pd.Timestamp(DIRPARSEFN(mpl_d, AFTERPULSETIMEFIELD))
-        napOE_fn = AFTERPULSEPROFILE.format(napOEdate, Delt,
+        napOE_fn = AFTPROFILE.format(napOEdate, Delt,
                                             Nbin, lidarname)
         np.savetxt(
             DIRCONFN(CALIPROFILESDIR, napOE_fn),
