@@ -29,7 +29,6 @@ _vecD_func = np.vectorize(_D_func)
 def main(
         lidarname, mplreader,
         mplfiledir=None,
-        date=None,
         starttime=None, endtime=None,
         genboo=False,
         writeboo=False,
@@ -43,7 +42,6 @@ def main(
         lidarname (str): directory name of lidar
         mplfiledir (str): mplfile to be processed if specified, date should be
                           None
-        date (datetime like): if specified only reads files within this directory
         start/endtime (datetime like): approx start/end time of data of interest
         genboo (boolean): if True, will read .mpl files and generate NRB, return
                            and write
@@ -77,7 +75,6 @@ def main(
         mpl_d = mplreader(
             lidarname,
             mplfiledir=mplfiledir,
-            date=date,
             starttime=starttime, endtime=endtime,
             filename=None,
         )
@@ -190,30 +187,29 @@ def main(
 
         # Storing data
         ret_d = {
-            'Timestamp':ts_ta,
-            'DeltNbin_a':DeltNbin_a,
-            'DeltNbinind_ta':DeltNbinind_ta,
-            'r_tra':r_tra,
-            'r_trm':r_trm,
-            'NRB_tra':NRB_tra,
-            'NRB1_tra':NRB1_tra,
-            'NRB2_tra':NRB2_tra,
-            'SNR_tra':NRB_tra/delNRB_tra,
-            'SNR1_tra':NRB1_tra/delNRB2_tra,
-            'SNR2_tra':NRB2_tra/delNRB2_tra,
+            'Timestamp': ts_ta,
+            'DeltNbin_a': DeltNbin_a,
+            'DeltNbinind_ta': DeltNbinind_ta,
+            'r_tra': r_tra,
+            'r_trm': r_trm,
+            'NRB_tra': NRB_tra,
+            'NRB1_tra': NRB1_tra,
+            'NRB2_tra': NRB2_tra,
+            'SNR_tra': NRB_tra/delNRB_tra,
+            'SNR1_tra': NRB1_tra/delNRB2_tra,
+            'SNR2_tra': NRB2_tra/delNRB2_tra,
         }
         if smmpl_boo:
-            ret_d['Azimuth Angle'] = np.deg2rad(mpl_d['Azimuth Angle'])\
-                - np.deg2rad(ANGOFFSET)
-            ret_d['Elevation Angle'] = np.pi/2\
-                - np.deg2rad(mpl_d['Elevation Angle'])
+            theta_ta, phi_ta = LIDAR2SPHEREFN(np.stack(
+                [mpl_d['Azimuth Angle'], mpl_d['Elevation Angle']], axis=1
+            ), np.deg2rad(ANGOFFSET))
+            ret_d['theta_ta'] = theta_ta
+            ret_d['phi_ta'] = phi_ta
 
 
         # writing to file
         if writeboo:
-            ret_d = {
-                key:ret_d[key].tolist() for key in list(ret_d.keys())
-            }
+            ret_d = {key: ret_d[key].tolist() for key in list(ret_d.keys())}
             with open(DIRCONFN(SOLARISMPLDIR.format(lidarname),
                                DATEFMT.format(starttime),
                                NRBDIR.format(starttime, endtime)),
