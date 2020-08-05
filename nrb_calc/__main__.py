@@ -30,7 +30,7 @@ def main(
         lidarname, mplreader,
         mplfiledir=None,
         starttime=None, endtime=None,
-        genboo=False,
+        genboo=True,
         writeboo=False,
 ):
     '''
