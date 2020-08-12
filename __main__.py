@@ -1,5 +1,5 @@
 # imports
-from ..globalimports import *
+from ..global_imports.solaris_opcodes import *
 
 # main func
 @annoucer

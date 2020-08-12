@@ -45,7 +45,7 @@ if __name__ == '__main__':
     from glob import glob
     import os.path as osp
     import matplotlib.pyplot as plt
-    from ...globalimports import *
+    from ...global_imports.solaris_opcodes import *
 
     smmpl_boo = True
     if smmpl_boo:

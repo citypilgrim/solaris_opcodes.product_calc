@@ -6,7 +6,7 @@ import numpy as np
 
 from ..cali_profiles import cali_profiles
 from ...file_readwrite import mpl_reader, smmpl_reader
-from ...globalimports import *
+from ...global_imports.solaris_opcodes import *
 
 
 # supp func

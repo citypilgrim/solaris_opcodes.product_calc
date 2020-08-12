@@ -3,7 +3,7 @@ import netCDF4 as nc
 import numpy as np
 from scipy.integrate import cumtrapz
 
-from ....globalimports import *
+from ....global_imports.solaris_opcodes import *
 
 
 # static params
