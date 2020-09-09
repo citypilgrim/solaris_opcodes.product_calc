@@ -22,7 +22,9 @@ def main(
     function that reads rayleigh-523_sing.cdf, stores data for the stated lambda
 
     Future
-        - convert to generate and read function, default with generating
+        - remove file writing, and set to always generate, due to changing angle
+          of lidar, which changes altitude
+        - utilise altitude array instead of Delt and Nbin
 
     Parameters
         Delt (float): bintime
@@ -67,8 +69,7 @@ def main(
         )
 
         # returning
-        return main(Delt, Nbin, False, weather, wavelength,
-                    verbboo=False)
+        return betam_ra, Tm2_ra, betamprime_ra
 
 
     # reading from exisiting file

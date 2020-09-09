@@ -40,16 +40,16 @@ def main(
 
     Parameters
         lidarname (str): directory name of lidar
+        mplreader (func): either mpl_reader or smmpl_reader,
+                          must be specified if genboo is True
         mplfiledir (str): mplfile to be processed if specified, date should be
                           None
         start/endtime (datetime like): approx start/end time of data of interest
         genboo (boolean): if True, will read .mpl files and generate NRB, return
-                           and write
-                           if False, will read exisitng nrb files and only return
-        mplreader (func): either mpl_reader or smmpl_reader,
-                          must be specified if genboo is True
+                          and write
+                          if False, will read exisitng nrb files and only return
         writeboo (boolean): data is written to filename if True,
-                             ignored if genboo is False
+                            ignored if genboo is False
 
     Return
         ret_d (dict):
@@ -224,7 +224,7 @@ def main(
                   ) as json_file:
             ret_d = json.load(json_file)
         ret_d = {
-            key:np.array(ret_d[key]) for key in list(ret_d.keys())
+            key: np.array(ret_d[key]) for key in list(ret_d.keys())
         }
 
     # returning

@@ -7,7 +7,7 @@ from ...global_imports.solaris_opcodes import *
 
 # main func
 def main(
-        mplreader, lidarname, mplfiledir, Dfunc,
+        mplreader, mplfiledir, Dfunc,
         napOEraa,
         plotboo=False,
         slicetup=slice(AFTERPULSEPROFSTART, AFTERPULSEPROFEND, 1),

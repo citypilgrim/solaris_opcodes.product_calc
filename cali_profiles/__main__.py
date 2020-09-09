@@ -18,8 +18,10 @@ from ...global_imports.solaris_opcodes import *
 def main(
         lidarname,
         Delt, Nbin,
-        genboo=False, mplreader=None,
-        plotboo=False, verbboo=True,
+        mplreader=None,
+        genboo=False, writeboo=False,
+        deadtimedir=None, afterpulsedir=None, overlapdir=None,
+        plotboo=False,
 ):
     '''
     Generates profiles for deadtime correction factor, overlap and afterpulse.
@@ -29,31 +31,32 @@ def main(
     range offset from range calibration applied only in solaris_opcodes.scan2ara
 
     This function generates calibration profiles interpolated to the specified
-    bin sizes, moving the old files. Note any extrapolation is the same as the
-    value at the extreme end
+    bin sizes. Note any extrapolation is the same as the value at the extreme end
     It will read from file of the calculated profile if not genboo
 
     If genboo will utilise the latest afterpulse and overlap .mpl files, and
     deadtime.txt file to perform computations, performing interpolation of both
     data and uncertainty of data (afterpulse and overlap)
 
-
     Future
         - change generation of overlap and afterpulse files to be from .csv to
           .mpl under ...params, and also under the imports
-        - move old calibration files to old_profiles
 
-    Params
+    Parameters
         lidarname (srt): directory name of lidar
         Delt (float): bintime
         Nbin (int): number of bins
-        genboo (boolean): decides whether or not to go through the profile
-                           generation check and potential calculation
         mplreader (func): either mpl_reader or smmpl_reader,
                           must be specified if genboo is True
+        genboo (boolean): decides whether or not to go through the profile
+                          generation check and potential calculation
+        writeboo (boolean): determines whether to write the generated profiles
+                            to a pre determined file
+        deadtimedir (str): directory of .mpl file or generated calibration file
+        afterpulsedir (str): directory of .mpl file or generated calibration file
+        overlapdir (str): directory of .mpl file or generated calibration file
         plotboo (boolean): whether or not to show plots from afterpulse and
-                           overlap calc
-        verboo (boolean): verbose
+                           overlap calc, only works when genboo == True
 
     Return
         napOE1_ra (array like): [MHz] afterpulse counts normalised by E
@@ -66,37 +69,44 @@ def main(
     '''
     # generating profile
     if genboo:
-        # retrieve filelist
-        napOE_dirlst = FINDFILESFN(AFTERPULSEFILE,
+
+        # finding latest file if not provided
+        if not deadtimedir:
+            D_dirlst = FINDFILESFN(DEADTIMEFILE,
                                    SOLARISMPLCALIDIR.format(lidarname))
-        Oc_dirlst = FINDFILESFN(OVERLAPFILE,
-                                SOLARISMPLCALIDIR.format(lidarname))
-        D_dirlst = FINDFILESFN(DEADTIMEFILE,
-                               SOLARISMPLCALIDIR.format(lidarname))
-        napOE_dirlst.sort(key=DIRPARSEFN(AFTERPULSETIMEFIELD))
-        Oc_dirlst.sort(key=DIRPARSEFN(OVERLAPTIMEFIELD))
-        D_dirlst.sort(key=osp.getmtime)
-        ## retrieve latest file
-        napOE_dir = napOE_dirlst[-1]
-        napOEdate = pd.Timestamp(DIRPARSEFN(napOE_dir, AFTERPULSETIMEFIELD))
-        Oc_dir = Oc_dirlst[-1]
-        Ocdate = pd.Timestamp(DIRPARSEFN(Oc_dir, OVERLAPTIMEFIELD))
-        D_dir = D_dirlst[-1]
-        Dsnstr = DIRPARSEFN(D_dir, DTSNFIELD)
+            D_dirlst.sort(key=osp.getmtime)
+            deadtimedir = D_dirlst[-1]
+        if not afterpulsedir:
+            napOE_dirlst = FINDFILESFN(AFTERPULSEFILE,
+                                       SOLARISMPLCALIDIR.format(lidarname))
+            napOE_dirlst.sort(key=DIRPARSEFN(AFTERPULSETIMEFIELD))
+            afterpulsedir = napOE_dirlst[-1]
+        if not overlapdir:
+            Oc_dirlst = FINDFILESFN(OVERLAPFILE,
+                                    SOLARISMPLCALIDIR.format(lidarname))
+            Oc_dirlst.sort(key=DIRPARSEFN(OVERLAPTIMEFIELD))
+            overlapdir = Oc_dirlst[-1]
+
+
+        # getting file meta data
+        Dsnstr = DIRPARSEFN(deadtimedir, DTSNFIELD)
+        napOEdate = pd.Timestamp(DIRPARSEFN(afterpulsedir, AFTERPULSETIMEFIELD))
+        Ocdate = pd.Timestamp(DIRPARSEFN(overlapdir, OVERLAPTIMEFIELD))
 
         # generatig profiles
         print('generating calibration files from:\n\t{}\n\t{}\n\t{}'.format(
-            napOE_dir, Oc_dir, D_dir
+            deadtimedir, afterpulsedir, overlapdir
         ))
+
         ## deadtime
-        Dcoeff_a, D_func = deadtime_genread(D_dir, genboo=True)
+        Dcoeff_a, D_func = deadtime_genread(deadtimedir, genboo=True)
 
         ## generating afterpulse and overlap correction profiles
         napOEr_ra, napOE1_ra, napOE2_ra, delnapOE1_ra, delnapOE2_ra =\
-            afterpulse_gen(mplreader, lidarname, napOE_dir, D_func,
+            afterpulse_gen(mplreader, afterpulsedir, D_func,
                            plotboo=plotboo)
         Ocr_ra, Oc_ra, delOc_ra = \
-            overlap_gen(mplreader, lidarname, Oc_dir, D_func,
+            overlap_gen(mplreader, overlapdir, D_func,
                         [napOEr_ra,
                          napOE1_ra, napOE2_ra,
                          delnapOE1_ra, delnapOE2_ra],
@@ -117,51 +127,65 @@ def main(
         ])
 
         # write to file
-        Dcoeff_fn = DEADTIMEPROFILE.format(Dsnstr, lidarname)
-        napOE_fn = AFTPROFILE.format(napOEdate, Delt,
-                                            Nbin, lidarname)
-        Oc_fn = OVERPROFILE.format(Ocdate, Delt, Nbin, lidarname)
-        print('writing calibration files:\n\t{}\n\t{}\n\t{}'.format(
-            Dcoeff_fn, napOE_fn, Oc_fn
-        ))
-        np.savetxt(
-            DIRCONFN(CALIPROFILESDIR, Dcoeff_fn),
-            Dcoeff_a, fmt='%{}.{}e'.format(1, CALIWRITESIGFIG-1)
-        )
-        np.savetxt(
-            DIRCONFN(CALIPROFILESDIR, napOE_fn),
-            napOE_raa, fmt='%{}.{}e'.format(1, CALIWRITESIGFIG-1)
-        )
-        np.savetxt(
-            DIRCONFN(CALIPROFILESDIR, Oc_fn),
-            Oc_raa, fmt='%{}.{}e'.format(1, CALIWRITESIGFIG-1)
-        )
+        if writeboo:
+            deadtimedir = DIRCONFN(CALIPROFILESDIR.format(lidarname),
+                                   DEADTIMEPROFILE.format(Dsnstr))
+            afterpulsedir = DIRCONFN(CALIPROFILESDIR.format(lidarname),
+                                     AFTPROFILE.format(napOEdate, Delt, Nbin))
+            overlapdir = DIRCONFN(CALIPROFILESDIR.format(lidarname),
+                                  OVERPROFILE.format(Ocdate, Delt, Nbin))
+            print('writing calibration files:\n\t{}\n\t{}\n\t{}'.format(
+                deadtimedir, afterpulsedir, overlapdir
+            ))
+            np.savetxt(
+                deadtimedir, Dcoeff_a,
+                fmt='%{}.{}e'.format(1, CALIWRITESIGFIG-1)
+            )
+            np.savetxt(
+                afterpulsedir, napOE_raa,
+                fmt='%{}.{}e'.format(1, CALIWRITESIGFIG-1)
+            )
+            np.savetxt(
+                overlapdir, Oc_raa,
+                fmt='%{}.{}e'.format(1, CALIWRITESIGFIG-1)
+            )
 
         # returning
-        return main(lidarname, Delt, Nbin, genboo=False, verbboo=True)
+        ret_l = [*napOE_raa, *Oc_raa, D_func]
+        return ret_l
 
     # quick return of calibration output
     else:
-        # retrieving filenames
-        napOE_dir = FINDFILESFN(AFTPROFILE, CALIPROFILESDIR,
-                                {AFTPROBINTIMEFIELD: Delt,
-                                 AFTPROBINNUMFIELD: Nbin,
-                                 AFTPROLIDARNAMEFIELD: lidarname})[0]
-        Oc_dir = FINDFILESFN(OVERPROFILE, CALIPROFILESDIR,
-                             {OVERPROBINTIMEFIELD: Delt,
-                              OVERPROBINNUMFIELD: Nbin,
-                              OVERPROLIDARNAMEFIELD: lidarname})[0]
-        D_dir = FINDFILESFN(DEADTIMEPROFILE, CALIPROFILESDIR,
-                            {DTLIDARNAMEFIELD: lidarname})[0]
+        # retrieving latest file
+        if not deadtimedir:
+            D_dirlst = FINDFILESFN(
+                DEADTIMEPROFILE, CALIPROFILESDIR.format(lidarname),
+            )
+            D_dirlst.sort(key=osp.getmtime)
+            deadtimedir = D_dirlst[-1]
+        if not afterpulsedir:
+            afterpulsedir = FINDFILESFN(
+                AFTPROFILE, CALIPROFILESDIR.format(lidarname),
+                {AFTPROBINTIMEFIELD: Delt,
+                 AFTPROBINNUMFIELD: Nbin}
+            )[-1]
+        if not overlapdir:
+            overlapdir = FINDFILESFN(
+                OVERPROFILE, CALIPROFILESDIR,
+                {OVERPROBINTIMEFIELD: Delt,
+                 OVERPROBINNUMFIELD: Nbin}
+            )[-1]
 
         # read file
         print('reading calibration files from:\n\t{}\n\t{}\n\t{}'.format(
-            napOE_dir, Oc_dir, D_dir
+            deadtimedir, afterpulsedir, overlapdir
         ))
-        napOE1_ra, napOE2_ra, delnapOE1_ra, delnapOE2_ra = np.loadtxt(napOE_dir)
-        Oc_ra, delOc_ra = np.loadtxt(Oc_dir)
-        _, D_func = deadtime_genread(D_dir, genboo=False)
+        _, D_func = deadtime_genread(deadtimedir, genboo=False)
+        napOE1_ra, napOE2_ra, delnapOE1_ra, delnapOE2_ra =\
+            np.loadtxt(afterpulsedir)
+        Oc_ra, delOc_ra = np.loadtxt(overlapdir)
 
+        # returning
         ret_l = [
             napOE1_ra, napOE2_ra, delnapOE1_ra, delnapOE2_ra,
             Oc_ra, delOc_ra,
@@ -172,20 +196,21 @@ def main(
 
 # running
 if __name__ == '__main__':
+    import matplotlib.pyplot as plt
     from ...file_readwrite import smmplfmt_dic
-    ## Delr ~15m, scan mini mpl
+
+    # Delr ~15m, scan mini mpl
     napOE1_ra, napOE2_ra, delnapOE1_ra, delnapOE2_ra,\
         Oc_ra, delOc_ra,\
-        D_func = main('smmpl_E2', 1e-7/2, 2000,
-                      genboo=True, plotboo=True)
+        D_func = main('smmpl_E2', 1e-7, 2000,
+                      genboo=True, writeboo=False, plotboo=True)
 
     # testing
-    Delr = SPEEDOFLIGHT * 1e-7/2
+    Delr = SPEEDOFLIGHT * 1e-7
     r_ra = Delr * np.arange(2000) + Delr/2 + 0
 
-    import matplotlib.pyplot as plt
-    nap_dir = '/home/tianli/SOLAR_EMA_project/data/smmpl_E2/calibration/201910170400_2e-7_afterpulse.csv'
-    Oc_dir = '/home/tianli/SOLAR_EMA_project/data/smmpl_E2/calibration/201910230900_2e-7_overlap.csv'
+    nap_dir = '/home/tianli/SOLAR_EMA_project/data/smmpl_E2/calibration/measured_profiles/201910170400_2e-7_afterpulse.csv'
+    Oc_dir = '/home/tianli/SOLAR_EMA_project/data/smmpl_E2/calibration/measured_profiles/201910230900_2e-7_overlap.csv'
     onapOE_raa = pd.read_csv(nap_dir, header=1).to_numpy().T
     oOc_raa = pd.read_csv(Oc_dir, header=0).to_numpy().T
 

@@ -7,6 +7,10 @@ from scipy.optimize import curve_fit
 from ...global_imports.solaris_opcodes import *
 
 
+# params
+_methodology = 'a'
+
+
 # supp func
 def _smooth_func(a, ra):
     # # convert negative values to zero
@@ -24,19 +28,20 @@ def _smooth_func(a, ra):
     return a
 
 
-
 # main func
 def main(
-        mplreader, lidarname, mplfiledir, Dfunc,
+        mplreader, mplfiledir, Dfunc,
         plotboo=False,
         slicetup=slice(AFTERPULSEPROFSTART, AFTERPULSEPROFEND, 1),
-        compstr='a'
+        compstr=_methodology
 ):
     '''
-    This script looks for .mpl file (single file) related to afterpulse
-    calibration measurements and churn out a profile based on the indicated bin
-    time. Best practise is to utilise the same bin time as the afterpulse
-    profile, so that we do not have to perform any interpolation
+    Computes afterpulse profile with the given .mpl file.
+    Best practise is to utilise the same bin time as the afterpulse
+    profile, so that we do not have to perform any interpolation.
+
+    Equations here are based on campbell 2002 Micopulse Lidar Signals: Uncertainty
+    Analysis
 
     Only the afterpulse profile is smoothed, the uncertainties of 'a' and 'b'
     are found to be smooth enough for interpolation.
@@ -49,7 +54,6 @@ def main(
 
     Params
         mplreader (func): either mpl_reader or smmpl_reader
-        lidarname (str): name of lidar
         mplfiledir (str): filename of mpl file to be read as afterpulse
                            calibration start of mpl file must be start of
                            measurement
@@ -69,11 +73,10 @@ def main(
     Return
         r_ra (np.array): range array, binsize given by .mpl file bin time
         napOE1/2_ra (np.array): normalised afterpulse correction
-        delnapOE1/2s_ra (np.array): sqaure of uncert in normalised afterpulse
+        delnapOE1/2s_ra (np.array): square of uncert in normalised afterpulse
     '''
     # reading data
     mpl_dic = mplreader(
-        lidarname,
         mplfiledir=mplfiledir, slicetup=slicetup
     )
 
@@ -130,6 +133,10 @@ def main(
                 + ((DELEOVERE**2) * np.ones(n1_tra.shape))
             ), axis=0
         )
+        ## handling cases where P1/2 is '0'
+        delnapOE1s_ra = np.nan_to_num(delnapOE1s_ra)
+        delnapOE2s_ra = np.nan_to_num(delnapOE2s_ra)
+
 
     elif compstr == 'b':        # their method, including first term
         # calc afterpulse
@@ -206,7 +213,7 @@ def main(
     return list(map(lambda x:x[n_rm], ret_l))
 
 
-# testing
+# testing and scripting
 if __name__ == '__main__':
     # imports
     import os.path as osp
@@ -224,18 +231,21 @@ if __name__ == '__main__':
 
         smmpl_boo = False
         if smmpl_boo:
-            lidarname, mpl_d = 'smmpl_E2', '/home/tianli/SOLAR_EMA_project/data/smmpl_E2/calibration/201910170400_2e-7afterpulse.mpl'
+            lidarname = 'smmpl_E2'
+            mpl_d = '/home/tianli/SOLAR_EMA_project/data/smmpl_E2/calibration/measured_profiles/201910170400_2e-7_afterpulse.mpl'
             mplreader = smmpl_reader
         else:
-            lidarname, mpl_d = 'mpl_S2S', '/home/tianli/SOLAR_EMA_project/data/mpl_S2S/calibration/201907161201_5e-7afterpulse.mpl'
+            lidarname = 'mpl_S2S'
+            mpl_d = '/home/tianli/SOLAR_EMA_project/data/mpl_S2S/calibration/measured_profiles/201907161201_5e-7_afterpulse.mpl'
             mplreader = mpl_reader
 
-        D_d = FINDFILESFN(DEADTIMEPROFILE, CALIPROFILESDIR,
-                          {DTLIDARNAMEFIELD: lidarname})[0]
+        D_d = FINDFILESFN(
+            DEADTIMEPROFILE, SOLARISMPLCALIDIR.format(lidarname)
+        )[0]
 
-        _, D_f = deadtime_genread(D_d, genboo=False)
+        _, D_f = deadtime_genread(D_d, genboo=True)
         napOEr_ra, napOE1_ra, napOE2_ra, delnapOE1s_ra, delnapOE2s_ra =\
-            main(mplreader, lidarname, mpl_d, D_f)
+            main(mplreader, mpl_d, D_f)
         # interpolating
         Delr = SPEEDOFLIGHT * Delt
         r_ra = Delr * np.arange(Nbin) + Delr/2
@@ -247,10 +257,9 @@ if __name__ == '__main__':
         ])
         # writing to file
         napOEdate = pd.Timestamp(DIRPARSEFN(mpl_d, AFTERPULSETIMEFIELD))
-        napOE_fn = AFTPROFILE.format(napOEdate, Delt,
-                                            Nbin, lidarname)
+        napOE_fn = AFTPROFILE.format(napOEdate, Delt, Nbin)
         np.savetxt(
-            DIRCONFN(CALIPROFILESDIR, napOE_fn),
+            DIRCONFN(CALIPROFILESDIR.format(lidarname), napOE_fn),
             napOE_raa, fmt='%{}.{}e'.format(1, CALIWRITESIGFIG-1)
         )
 
@@ -259,17 +268,23 @@ if __name__ == '__main__':
     compare_boo = True
     if compare_boo:
 
-        lidarname, mpl_fn = 'mpl_S2S', '/home/tianli/SOLAR_EMA_project/data/mpl_S2S/calibration/201909231105_5e-7afterpulse.mpl'
+        # lidarname = 'mpl_S2S'
+        # mpl_fn = '/home/tianli/SOLAR_EMA_project/data/mpl_S2S/calibration/measured_profiles/201909231105_5e-7_afterpulse.mpl'
+        lidarname = 'smmpl_E2'
+        mpl_fn = '/home/tianli/SOLAR_EMA_project/data/smmpl_E2/calibration/measured_profiles/201910170400_2e-7_afterpulse.mpl'
 
-        D_d = FINDFILESFN(DEADTIMEPROFILE, CALIPROFILESDIR,
-                          {DTLIDARNAMEFIELD: lidarname})[0]
-        _, D_f = deadtime_genread(D_d, genboo=False)
+        D_d = FINDFILESFN(
+            DEADTIMEPROFILE, SOLARISMPLCALIDIR.format(lidarname)
+        )[0]
+        _, D_f = deadtime_genread(D_d, genboo=True)
 
         # plotting to test
         fig, (ax3, ax4) = plt.subplots(nrows=2, sharex=True)
 
         ## sigmaMPL's values
-        nap_fn = '/home/tianli/SOLAR_EMA_project/data/mpl_S2S/calibration/201909231105_5e-7afterpulse.csv'
+        # nap_fn = '/home/tianli/SOLAR_EMA_project/data/mpl_S2S/calibration/generated_profiles/201909231105_5e-7_afterpulse.csv'
+        nap_fn = '/home/tianli/SOLAR_EMA_project/data/smmpl_E2/calibration/generated_profiles/201910170400_2e-7_afterpulse.csv'
+
         r_ra, napOE2_ra, napOE1_ra = pd.read_csv(nap_fn, header=1).to_numpy().T
         ax3.plot(r_ra, napOE1_ra,  'kx', label='SigmaMPL')
         ax3.plot(r_ra, napOE2_ra, 'kx')
@@ -278,7 +293,7 @@ if __name__ == '__main__':
         ## calculated values
         for comp_str in ['a', 'b', 'c']:
             r_ra, napOE1_ra, napOE2_ra, delnapOE1s_ra, delnapOE2s_ra = main(
-                mpl_reader, lidarname, mpl_fn, D_f,
+                mpl_reader, mpl_fn, D_f,
                 plotboo=False,
                 compstr=comp_str
             )
@@ -286,8 +301,6 @@ if __name__ == '__main__':
             ax3.plot(r_ra, napOE1_ra, '-', color=p[0].get_color())
             p = ax4.plot(r_ra, delnapOE2s_ra**0.5)
             ax4.plot(r_ra, delnapOE1s_ra**0.5, color=p[0].get_color())
-
-
 
         ax3.set_yscale('log')
         ax4.set_yscale('log')

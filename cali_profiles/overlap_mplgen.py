@@ -20,7 +20,6 @@ def _linearreg_ff(xa):
 
 # main func
 def main(mplreader,
-         lidarname,
          mplfiledir,
          Dfunc,
          napOEraa,
@@ -29,10 +28,12 @@ def main(mplreader,
          slicetup=slice(OVERLAPPROFSTART, OVERLAPPROFEND, 1),
          compstr='f'):
     '''
-    This script looks for .mpl file (single file) related to overlap
-    calibration measurements and churn out a profile based on the indicated bin
-    time. Best practise is to utilise the same bin time as the overlap
+    churn out overlap profile based on the indicated bin time.
+    Best practise is to utilise the same bin time as the overlap
     profile and afterpulse, so that we do not have to perform any interpolation
+
+    Equations here are based on campbell 2002 Micopulse Lidar Signals: Uncertainty
+    Analysis
 
     averaging time <= 1 min -> delE/E ~= DELEOVERE
 
@@ -48,7 +49,6 @@ def main(mplreader,
 
     Params
         mplreader (func): either mpl_reader or smmpl_reader
-        lidarname (str): name of lidar
         mplfiledir (str): filename of mpl file to be read as afterpulse
                            calibration start of mpl file must be start of
                            measurement
@@ -79,7 +79,7 @@ def main(mplreader,
         delOc_ra (np.array): uncert in overlap
     '''
     # reading data
-    mpl_dic = mplreader(lidarname, mplfiledir=mplfiledir, slicetup=slicetup)
+    mpl_dic = mplreader(mplfiledir=mplfiledir, slicetup=slicetup)
 
     n1_tra = mpl_dic['Channel #1 Data']  # co-pol
     n2_tra = mpl_dic['Channel #2 Data']  # cross-pol
@@ -107,7 +107,7 @@ def main(mplreader,
 
     P1_tra = n1_tra * Dfunc(n1_tra)
     P2_tra = n2_tra * Dfunc(n2_tra)
-    delP1s_tra = P1_tra / N_ta[:, None]
+    delP1s_tra = P1_tra / N_ta[:, None]  # 's' at the end means squared
     delP2s_tra = P2_tra / N_ta[:, None]
 
 
@@ -144,8 +144,10 @@ def main(mplreader,
     rlen = len(r_ra)
     r0pos = np.argmax(r0boo_ra)
 
-    ## computing Oc_ra
-    if compstr in ['b', 'd', 'f']:  # average on linear regression
+    ## performing linear regression and computing value
+
+    ### average on linear regression
+    if compstr in ['b', 'd', 'f']:
         lrlnPH_tra = np.apply_along_axis(_linearreg_ff(sr_ra), 1,
                                          lnPH_tra[:, sboo_ra])
         lrlnPHpopt_ta = np.concatenate(lrlnPH_tra[:, 0])
@@ -155,7 +157,8 @@ def main(mplreader,
         Oc_tra = PH_tra / PF_tra
         Oc_ra = np.average(Oc_tra, axis=0)
 
-    elif compstr in ['a', 'c', 'e']:  # linear regression on average
+    ### linear regression on average;same as linear regression on all points
+    elif compstr in ['a', 'c', 'e']:
         PH_ra, lnPH_ra = np.average([PH_tra, lnPH_tra], axis=1)
         lrlnPHpopt, lrlnPHpcov = curve_fit(
             _linear_f, r_ra[sboo_ra], lnPH_ra[sboo_ra]
@@ -172,8 +175,8 @@ def main(mplreader,
 
 
     # computing del Oc
-    ## computing delPH term
-    delPHOPHs_tra = (
+    ## computing delPH term; 'SNR' means del<val>/<val>
+    SNRPHs_tra = (
         (
             delPs_tra + delnbs_ta[:, None]
             + (napOE_ra * DELEOVERE * E_ta[:, None])**2
@@ -182,17 +185,23 @@ def main(mplreader,
         + DELEOVERE**2
     )
     if compstr in ['a', 'c', 'e']:  # error from each term
-        delPHOPHs_ra = ((len(delPHOPHs_tra) * PH_ra)**-2) * np.sum(
-            delPHOPHs_tra * (PH_tra**2), axis=0
+        SNRPHs_ra = ((len(SNRPHs_tra) * PH_ra)**-2) * np.sum(
+            SNRPHs_tra * (PH_tra**2), axis=0
         )
 
     ## computing differing term
     if compstr == 'a':
-        delm2sigma_ta, dellnCbeta_ta = np.sqrt(np.diag(lrlnPHpcov_ta))
-        '''compute error propagation for exponential'''
+        delm2sigma, dellnCbeta = np.sqrt(np.diag(lrlnPHpcov))
+        SNRm2sigmas_ra = (r_ra * delm2sigma) ** 2
+        SNRCbetas = dellnCbeta ** 2
+        SNRPFs_ra = SNRm2sigmas_ra + SNRCbetas
+        delOc_ra = Oc_ra * np.sqrt(SNRPHs_ra + SNRPFs_ra)
+        delOc_ra[r0boo_ra] = 0
 
     elif compstr == 'b':
-        delm2sigma, dellnCbeta = np.sqrt(np.diag(lrlnPHpcov))
+        pass
+        # delm2sigma, dellnCbeta = np.sqrt(np.diag(lrlnPHpcov_ta))
+
 
     elif compstr == 'c':
         pass
@@ -221,6 +230,8 @@ def main(mplreader,
             # ax.plot(r_ra, _linear_f(r_ra, m2sigma, lnCbeta),
             #         color=p[0].get_color())
             plt.plot(r_ra, Oc_ra, 'k-')
+            plt.plot(r_ra, delOc_ra, 'r-')
+
 
         # ax1.set_yscale('log')
         plt.yscale('log')
@@ -230,35 +241,43 @@ def main(mplreader,
     return r_ra, Oc_ra#, delOc_ra
 
 
+# testing
 if __name__ == '__main__':
-    '''
-    Testing
-        - Check that interpolation of uncertainty does not vary too largely
-          from original uncertainty
-    '''
     # imports
     from glob import glob
     from .deadtime_genread import main as deadtime_genread
     from .afterpulse_mplgen import main as afterpulse_mplgen
+    from .afterpulse_csvgen import main as afterpulse_csvgen
+    from .overlap_csvgen import main as overlap_csvgen
     from ...file_readwrite import smmpl_reader, mpl_reader
 
     # testing
     mplreader = smmpl_reader
     lidarname = 'smmpl_E2'
 
-    D_d = FINDFILESFN(DEADTIMEPROFILE, CALIPROFILESDIR,
-                      {DTLIDARNAMEFIELD: lidarname})[0]
-    _, D_f = deadtime_genread(D_d, genboo=False)
+    ## computing deadtime
+    D_d = FINDFILESFN(DEADTIMEFILE, SOLARISMPLCALIDIR.format(lidarname))[0]
+    _, D_f = deadtime_genread(D_d, genboo=True)
 
-    mpl_d = '/home/tianli/SOLAR_EMA_project/data/smmpl_E2/calibration/201910170400_2e-7afterpulse.mpl'
-    napOE_raa = afterpulse_mplgen(mplreader, lidarname, mpl_d, D_f)
+    ## computing afterpulse
+    mpl_d = '/home/tianli/SOLAR_EMA_project/data/smmpl_E2/calibration/measured_profiles/201910170400_2e-7_afterpulse.mpl'
+    napOE_raa = afterpulse_mplgen(mplreader, mpl_d, D_f, compstr='c')
 
-    mpl_d = '/home/tianli/SOLAR_EMA_project/data/smmpl_E2/calibration/201910230900_2e-7overlap.mpl'
-    main(mplreader, lidarname, mpl_d, D_f, napOE_raa,
+    ## computing overlap
+    mpl_d = '/home/tianli/SOLAR_EMA_project/data/smmpl_E2/calibration/measured_profiles/201910230900_2e-7_overlap.mpl'
+    main(mplreader, mpl_d, D_f, napOE_raa,
          combpolboo=True, plotboo=True, compstr='b')
-    main(mplreader, lidarname, mpl_d, D_f, napOE_raa,
+    main(mplreader, mpl_d, D_f, napOE_raa,
          combpolboo=True, plotboo=True, compstr='a')
 
-    '''plot SigmaMPL's plot'''
+
+    ## plotting SigmaMPL's version
+    csv_d = '/home/tianli/SOLAR_EMA_project/data/smmpl_E2/calibration/generated_profiles/201910230900_2e-7_overlap.csv'
+    r_ra, Oc_ra, delOc_ra = overlap_csvgen(
+        mplreader, csv_d, D_f, napOE_raa
+    )
+    # plt.plot(r_ra, Oc_ra, 'k-')A
+
+
 
     plt.show()
