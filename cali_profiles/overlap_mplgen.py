@@ -18,9 +18,6 @@ def _linearreg_ff(xa):
     return linearreg_f
 
 
-fig, (ax, ax1) = plt.subplots(nrows=2, sharex=True)
-
-
 # main func
 def main(mplreader,
          mplfiledir,
@@ -42,13 +39,6 @@ def main(mplreader,
 
     Final profile is an average of each individual timestamp. Uncertainties are
     propagated by the average
-
-    Future
-        - remove testing and finish up return
-        - Decide whether to calculate for co and both toggle
-        - add plotting function
-        - remove 2020 overlap calibration file from data dir to avoid using SG
-          data
 
     Params
         mplreader (func): either mpl_reader or smmpl_reader
@@ -223,7 +213,7 @@ def main(mplreader,
 
         dellnCbeta_ta = np.sqrt(ss_ta/Omega * np.sum(r_ra**2))
         SNRCbetas_ta = (
-            (np.exp(lnCbeta_ta + dellnCbeta_ta) - np.exp(lnCbeta_ta))\
+            (np.exp(lnCbeta_ta + dellnCbeta_ta) - np.exp(lnCbeta_ta))
             + (np.exp(lnCbeta_ta) - np.exp(lnCbeta_ta - dellnCbeta_ta))
         ) / (2 * np.exp(lnCbeta_ta))
 
@@ -251,7 +241,7 @@ def main(mplreader,
     ## trimming delOc after lower limit of regression
     delOc_ra[r0boo_ra] = 0
 
-
+    fig, (ax, ax1) = plt.subplots(nrows=2, sharex=True)
     # plotting linear regression for show
     if plotboo:
         if compstr in ['b', 'c', 'd']:
@@ -270,10 +260,11 @@ def main(mplreader,
             ax1.plot(r_ra, delOc_ra, linestyle='--', color=p[0].get_color())
 
         ax1.set_yscale('log')
-        # plt.show()
+        plt.legend()
+        plt.show()
 
     # return
-    return r_ra, Oc_ra#, delOc_ra
+    return r_ra, Oc_ra, delOc_ra
 
 
 # testing
@@ -316,8 +307,3 @@ if __name__ == '__main__':
         mplreader, csv_d, D_f, napOE_raa
     )
     # plt.plot(r_ra, Oc_ra, 'k-')
-
-
-    plt.xlim([-1, 10])
-    plt.legend()
-    plt.show()

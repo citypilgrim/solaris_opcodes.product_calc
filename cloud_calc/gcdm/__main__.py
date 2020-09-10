@@ -33,6 +33,8 @@ def main(
     Future
         - KEMPIRICAL might be passed in as an argument for optimization/quality
           check in the future
+        - correct the error where we are not passing altitude to the rayleigh_gen
+          profile
 
     Parameters
         nrbdic (dict): output from .nrb_calc.py
@@ -71,7 +73,7 @@ def main(
     drCbetaprime_tra = np.diff(Cbetaprime_tra, axis=1) / rspace_taa
     drr_tra = rspace_taa/2 + r_tra[:, :-1]
 
-    
+
     for ind in range(0, len(drr_tra), 10):
         fig, (ax, ax1) = plt.subplots(ncols=2, sharey=True)
         print(f'we are at {ind}, time is {ts_ta[ind]}')
