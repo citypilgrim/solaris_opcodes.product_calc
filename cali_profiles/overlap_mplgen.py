@@ -196,6 +196,7 @@ def main(mplreader,
         SNRPHs_ra = ((len(SNRPHs_tra) * PH_ra)**-2) * np.sum(
             SNRPHs_tra * (PH_tra**2), axis=0
         )
+
         SNRPFs_ra = SNRem2sigmas_ra + SNRCbetas
         delOc_ra = Oc_ra * np.sqrt(SNRPHs_ra + SNRPFs_ra)
 
