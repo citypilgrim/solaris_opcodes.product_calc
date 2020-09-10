@@ -210,7 +210,7 @@ def main(mplreader,
 
         SNRPFs_tra = SNRem2sigmas_tra + SNRCbetas_ta[:, None]
         delOc_ra = (1/len(SNRPHs_tra)) * np.sqrt(np.sum(
-            Oc_tra * (SNRPHs_tra + SNRPFs_tra), axis=0
+            (Oc_tra**2) * (SNRPHs_tra + SNRPFs_tra), axis=0
         ))
 
     elif compstr == 'c':  # error propagate uncert from campbell2002 equations
@@ -229,7 +229,7 @@ def main(mplreader,
 
         SNRPFs_tra = SNRem2sigmas_tra + SNRCbetas_ta[:, None]
         delOc_ra = (1/len(SNRPHs_tra)) * np.sqrt(np.sum(
-            Oc_tra * (SNRPHs_tra + SNRPFs_tra), axis=0
+            (Oc_tra**2) * (SNRPHs_tra + SNRPFs_tra), axis=0
         ))
 
     elif compstr == 'd':
@@ -245,7 +245,7 @@ def main(mplreader,
 
         SNRPFs_tra = SNRem2sigmas_tra + SNRCbetas_ta[:, None]
         delOc_ra = (1/len(SNRPHs_tra)) * np.sqrt(np.sum(
-            Oc_tra * (SNRPHs_tra + SNRPFs_tra), axis=0
+            (Oc_tra**2) * (SNRPHs_tra + SNRPFs_tra), axis=0
         ))
 
     ## trimming delOc after lower limit of regression
