@@ -18,6 +18,9 @@ def _linearreg_ff(xa):
     return linearreg_f
 
 
+fig, (ax, ax1) = plt.subplots(nrows=2, sharex=True)
+
+
 # main func
 def main(mplreader,
          mplfiledir,
@@ -64,12 +67,9 @@ def main(mplreader,
                        'a': curve fit on average, uncert from curve_fit func
                        'b': average of curve fits on each profile, error
                             propagation of uncert from curve fit
-                       'c': curve fit on average, uncert from campbell2002
-                       'd': average of curve fits on each profile, error
+                       'c': average of curve fits on each profile, error
                             propagation of uncert from campbell2002
-                       'e': curve fit on average, uncert from campbell2002
-                            except del(ln Cbeta) term
-                       'f': average of curve fits on each profile, error
+                       'd': average of curve fits on each profile, error
                             propagation of uncert from campbell2002 except
                             del(ln Cbeta) term
 
@@ -147,28 +147,30 @@ def main(mplreader,
     ## performing linear regression and computing value
 
     ### average on linear regression
-    if compstr in ['b', 'd', 'f']:
+    if compstr in ['b', 'c', 'd']:
         lrlnPH_tra = np.apply_along_axis(_linearreg_ff(sr_ra), 1,
                                          lnPH_tra[:, sboo_ra])
         lrlnPHpopt_ta = np.concatenate(lrlnPH_tra[:, 0])
-        lrlnPHpcov_ta = lrlnPH_tra[:, 1]
+        lrlnPHpcov_ta = np.stack(lrlnPH_tra[:, 1], axis=0)
         m2sigma_ta, lnCbeta_ta = lrlnPHpopt_ta[:, 0], lrlnPHpopt_ta[:, 1]
-        PF_tra = np.exp(lnCbeta_ta[:, None] + m2sigma_ta[:, None] * r_ra)
+        lnPF_tra = lnCbeta_ta[:, None] + m2sigma_ta[:, None] * r_ra
+        PF_tra = np.exp(lnPF_tra)
         Oc_tra = PH_tra / PF_tra
         Oc_ra = np.average(Oc_tra, axis=0)
 
     ### linear regression on average;same as linear regression on all points
-    elif compstr in ['a', 'c', 'e']:
+    elif compstr == 'a':
         PH_ra, lnPH_ra = np.average([PH_tra, lnPH_tra], axis=1)
         lrlnPHpopt, lrlnPHpcov = curve_fit(
             _linear_f, r_ra[sboo_ra], lnPH_ra[sboo_ra]
         )
         m2sigma, lnCbeta = lrlnPHpopt
-        PF_ra = np.exp(lnCbeta + m2sigma * r_ra)
+        lnPF_ra = lnCbeta + m2sigma * r_ra
+        PF_ra = np.exp(lnPF_ra)
         Oc_ra = PH_ra / PF_ra
 
     else:
-        raise ValueError('compstr = "a", "b", "c", "d", "e" or "f"')
+        raise ValueError('compstr = "a", "b", "c", "d"')
 
     ## concat constant 1 after r = r0
     Oc_ra = np.concatenate((Oc_ra[:r0pos], np.ones(rlen - r0pos)), axis=0)
@@ -184,57 +186,89 @@ def main(mplreader,
         ) / ((P_tra - nb_ta[:, None] - napOE_ra * E_ta[:, None])**2)
         + DELEOVERE**2
     )
-    if compstr in ['a', 'c', 'e']:  # error from each term
+
+    ## computing differing term
+    if compstr == 'a':          # uncert from linear regression
+        delm2sigma, dellnCbeta = np.sqrt(np.diag(lrlnPHpcov))
+        SNRem2sigmas_ra = (r_ra * delm2sigma) ** 2
+        SNRCbetas = dellnCbeta ** 2
+
         SNRPHs_ra = ((len(SNRPHs_tra) * PH_ra)**-2) * np.sum(
             SNRPHs_tra * (PH_tra**2), axis=0
         )
-
-    ## computing differing term
-    if compstr == 'a':
-        delm2sigma, dellnCbeta = np.sqrt(np.diag(lrlnPHpcov))
-        SNRm2sigmas_ra = (r_ra * delm2sigma) ** 2
-        SNRCbetas = dellnCbeta ** 2
-        SNRPFs_ra = SNRm2sigmas_ra + SNRCbetas
+        SNRPFs_ra = SNRem2sigmas_ra + SNRCbetas
         delOc_ra = Oc_ra * np.sqrt(SNRPHs_ra + SNRPFs_ra)
-        delOc_ra[r0boo_ra] = 0
 
-    elif compstr == 'b':
-        pass
-        # delm2sigma, dellnCbeta = np.sqrt(np.diag(lrlnPHpcov_ta))
+    elif compstr == 'b':        # error propagate uncert from linear regression
+        delm2sigma_ta, dellnCbeta_ta = np.sqrt(np.array([
+            np.diag(ara) for ara in lrlnPHpcov_ta
+        ])).T
 
+        SNRem2sigmas_tra = (r_ra * delm2sigma_ta[:, None]) ** 2
+        SNRCbetas_ta = dellnCbeta_ta ** 2
 
-    elif compstr == 'c':
-        pass
+        SNRPFs_tra = SNRem2sigmas_tra + SNRCbetas_ta[:, None]
+        delOc_ra = (1/len(SNRPHs_tra)) * np.sqrt(np.sum(
+            Oc_tra * (SNRPHs_tra + SNRPFs_tra), axis=0
+        ))
+
+    elif compstr == 'c':  # error propagate uncert from campbell2002 equations
+        X = r_ra.size
+        Omega = X * np.sum(r_ra**2) - np.sum(r_ra)**2
+        ss_ta = 1/(X-2) * np.sum(np.nan_to_num(lnPH_tra - lnPF_tra)**2, axis=1)
+
+        delm2sigma_ta = np.sqrt(X * ss_ta / Omega)
+        SNRem2sigmas_tra = (r_ra * delm2sigma_ta[:, None]) ** 2
+
+        dellnCbeta_ta = np.sqrt(ss_ta/Omega * np.sum(r_ra**2))
+        SNRCbetas_ta = (
+            (np.exp(lnCbeta_ta + dellnCbeta_ta) - np.exp(lnCbeta_ta))\
+            + (np.exp(lnCbeta_ta) - np.exp(lnCbeta_ta - dellnCbeta_ta))
+        ) / (2 * np.exp(lnCbeta_ta))
+
+        SNRPFs_tra = SNRem2sigmas_tra + SNRCbetas_ta[:, None]
+        delOc_ra = (1/len(SNRPHs_tra)) * np.sqrt(np.sum(
+            Oc_tra * (SNRPHs_tra + SNRPFs_tra), axis=0
+        ))
 
     elif compstr == 'd':
-        pass
+        X = r_ra.size
+        Omega = X * np.sum(r_ra**2) - np.sum(r_ra)**2
+        ss_ta = 1/(X-2) * np.sum(np.nan_to_num(lnPH_tra - lnPF_tra)**2, axis=1)
 
-    elif compstr == 'e':
-        pass
+        delm2sigma_ta = np.sqrt(X * ss_ta / Omega)
+        SNRem2sigmas_tra = (r_ra * delm2sigma_ta[:, None]) ** 2
 
-    elif compstr == 'f':
-        pass
+        dellnCbeta_ta = np.sqrt(ss_ta/Omega * np.sum(r_ra**2))
+        SNRCbetas_ta = dellnCbeta_ta ** 2
+
+        SNRPFs_tra = SNRem2sigmas_tra + SNRCbetas_ta[:, None]
+        delOc_ra = (1/len(SNRPHs_tra)) * np.sqrt(np.sum(
+            Oc_tra * (SNRPHs_tra + SNRPFs_tra), axis=0
+        ))
+
+    ## trimming delOc after lower limit of regression
+    delOc_ra[r0boo_ra] = 0
+
 
     # plotting linear regression for show
     if plotboo:
-        # fig, (ax, ax1) = plt.subplots(nrows=2, sharex=True)
-        if compstr in ['b', 'd', 'f']:
+        if compstr in ['b', 'c', 'd']:
             for i, lnPH_ra in enumerate(lnPH_tra):
-                # p = ax.plot(r_ra, lnPH_ra, 'x')
-                # ax.plot(r_ra, _linear_f(r_ra, m2sigma_ta[i], lnCbeta_ta[i]),
-                #         color=p[0].get_color())
-                plt.plot(r_ra, Oc_tra[i], 'x')
-            plt.plot(r_ra, Oc_ra, 'ko')
+                p = ax.plot(r_ra, lnPH_ra, 'x')
+                ax.plot(r_ra, _linear_f(r_ra, m2sigma_ta[i], lnCbeta_ta[i]),
+                        color=p[0].get_color())
+                ax1.plot(r_ra, Oc_tra[i], 'x', color=p[0].get_color())
+            p = ax1.plot(r_ra, Oc_ra, linestyle='-', label=compstr)
+            ax1.plot(r_ra, delOc_ra, linestyle='--', color=p[0].get_color())
         else:
-            # p = ax.plot(r_ra, lnPH_ra, 'x')
-            # ax.plot(r_ra, _linear_f(r_ra, m2sigma, lnCbeta),
-            #         color=p[0].get_color())
-            plt.plot(r_ra, Oc_ra, 'k-')
-            plt.plot(r_ra, delOc_ra, 'r-')
+            p = ax.plot(r_ra, lnPH_ra, 'kx')
+            ax.plot(r_ra, _linear_f(r_ra, m2sigma, lnCbeta),
+                    color=p[0].get_color())
+            p = ax1.plot(r_ra, Oc_ra, linestyle='-', label=compstr)
+            ax1.plot(r_ra, delOc_ra, linestyle='--', color=p[0].get_color())
 
-
-        # ax1.set_yscale('log')
-        plt.yscale('log')
+        ax1.set_yscale('log')
         # plt.show()
 
     # return
@@ -268,6 +302,10 @@ if __name__ == '__main__':
     main(mplreader, mpl_d, D_f, napOE_raa,
          combpolboo=True, plotboo=True, compstr='b')
     main(mplreader, mpl_d, D_f, napOE_raa,
+         combpolboo=True, plotboo=True, compstr='c')
+    main(mplreader, mpl_d, D_f, napOE_raa,
+         combpolboo=True, plotboo=True, compstr='d')
+    main(mplreader, mpl_d, D_f, napOE_raa,
          combpolboo=True, plotboo=True, compstr='a')
 
 
@@ -276,8 +314,9 @@ if __name__ == '__main__':
     r_ra, Oc_ra, delOc_ra = overlap_csvgen(
         mplreader, csv_d, D_f, napOE_raa
     )
-    # plt.plot(r_ra, Oc_ra, 'k-')A
+    # plt.plot(r_ra, Oc_ra, 'k-')
 
 
-
+    plt.xlim([-1, 10])
+    plt.legend()
     plt.show()
