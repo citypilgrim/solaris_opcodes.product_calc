@@ -8,6 +8,8 @@ from ...global_imports.solaris_opcodes import *
 
 
 # main func
+@verbose
+@announcer
 def main(
         mplreader, lidarname, mplfiledir, Dfunc,
         plotboo=False,

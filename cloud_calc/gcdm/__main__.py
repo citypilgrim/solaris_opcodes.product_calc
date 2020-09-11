@@ -52,15 +52,24 @@ def main(
     ts_ta = nrbdic['Timestamp']
 
     # retrieving scattering profile
-    DeltNbin_a = nrbdic['DeltNbin_a']
-    alen = len(DeltNbin_a)
-    DeltNbinind_ta = nrbdic['DeltNbinind_ta']
-    _, _, betaprimem_raa = np.apply_along_axis(
-        _aaaraygen_func, 0, np.array(DeltNbin_a).T,
-        genboo=True
+    try:                        # scanning lidar NRB
+        setz_a = nrbdic['DeltNbintheta_a']
+        alen = len(setz_a)
+        setzind_ta = nrbdic['DeltNbinthetaind_ta']
+    except KeyError:            # vertical lidar NRB
+        setz_a = nrbdic['DeltNbin_a']
+        alen = len(setz_a)
+        setzind_ta = nrbdic['DeltNbinind_ta']
+
+    print(np.array(setz_a).shape)
+    '''NOTSURE WHY APPLY_ALONG_AXIS IS NOT WORKING'''
+    betaprimem_raa = np.apply_along_axis(
+        _aaaraygen_func, 1, np.array(setz_a),
     )
-    betamprime_tra = np.array(list(map(lambda x:betaprimem_raa[x],
-                                       DeltNbinind_ta)))
+    print(betaprimem_raa.shape)
+    betamprime_tra = np.array(list(map(lambda x: betaprimem_raa[x],
+                                       setzind_ta)))
+
 
     # computing gcdm mask
     gcdm_trm = np.arange(r_trm.shape[1])\
@@ -156,17 +165,17 @@ def main(
 
 
     # returning
-    '''go to think about this'''
+    '''got to think about this'''
 
 
 
 if __name__ == '__main__':
     from ...nrb_calc import nrb_calc
-    from ....file_readwrite import mpl_reader
+    from ....file_readwrite import smmpl_reader
 
     nrb_d = nrb_calc(
-        'mpl_S2S', mpl_reader,
-        '/home/tianli/SOLAR_EMA_project/codes/solaris_opcodes/product_calc/nrb_calc/testNRB_mpl_S2S.mpl',
+        'smmpl_E2', smmpl_reader,
+        '/home/tianli/SOLAR_EMA_project/codes/solaris_opcodes/product_calc/nrb_calc/testNRB_smmpl_E2.mpl',
         genboo=True,
     )
 

@@ -6,6 +6,8 @@ from ...global_imports.solaris_opcodes import *
 
 
 # main func
+@verbose
+@announcer
 def main(
         mplreader, mplfiledir, Dfunc,
         plotboo=False,

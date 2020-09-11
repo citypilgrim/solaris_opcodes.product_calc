@@ -54,21 +54,23 @@ def main(
     Return
         ret_d (dict):
             DeltNbin_a (list): set of zipped Delt_ta and Nbin_ta
-            DeltNbinind_ta (np.array): shape (time dim), tra index on set of Nbin
-                                       and Delt
+            DeltNbinind_ta (np.array): DeltNbin_a indexes for the tra arrays
             r_tra (np.array): shape (time dim, no. range bins)
             r_trm (np.array): shape (time dim, no. range bins), usually all ones
             NRB1/2_tra (np.array): shape (time dim, no. range bins)
             delNRB1/2_tra (np.array): shape (time dim, no. range bins)
             SNR1/2_tra (np.array): shape (time dim, no. range bins)
-            theta/phi_ta (np.array): [rad] if smmpl_boo,
+
+        if 'Azimiuth Angle' and 'Elevation Angle' are valid keys
+            theta/phi_ta (np.array): [rad] if it exsists in the mplfile
                                      spherical coordinates of data, angular offset
                                      corrected
+            theta_a (np.array): set of theta values
+            z_tra (np.array): [km] altitude, if theta_ta exists
+            DeltNbintheta_a (list): set of zipped Delta_ta, Nbin_ta, theta_ta
+            DeltNbinthetaind_ta (np.array): DeltNbin_a thetaindexes for the tra
+                                            arrays
     '''
-    # checking which lidar we are dealing with
-    smmpl_boo = (mplreader is smmpl_reader)
-
-
     # computation
     if genboo:
         # read .mpl files
@@ -112,18 +114,23 @@ def main(
             Oc_raa, delOcs_raa,\
             D_funca = np.apply_along_axis(
                 _aaacaliprofiles_func, 0, np.array(DeltNbin_a).T,
-                (lidarname, ), {'genboo':True, 'verbboo':True}
+                (lidarname, ), {
+                    'mplreader': mplreader,
+                    'genboo': True,
+                    'plotboo': False,
+                    'verbboo': True
+                }
             )
         cali_raal = [napOE1_raa, napOE2_raa, delnapOE1s_raa, delnapOE2s_raa,
                      Oc_raa, delOcs_raa]
         D_func = D_funca[0]    # D_func's are all the same for the same lidar
         ## indexing calculated files
-        DeltNbin_d = {DeltNbin:i for i, DeltNbin in enumerate(DeltNbin_a)}
+        DeltNbin_d = {DeltNbin: i for i, DeltNbin in enumerate(DeltNbin_a)}
         DeltNbinind_ta = np.array(list(map(lambda x: DeltNbin_d[x],
                                            DeltNbin_ta)))
         napOE1_tra, napOE2_tra, delnapOE1s_tra, delnapOE2s_tra,\
             Oc_tra, delOcs_tra = [
-                np.array(list(map(lambda x:raa[x],  DeltNbinind_ta)))
+                np.array(list(map(lambda x: raa[x],  DeltNbinind_ta)))
                 for raa in cali_raal
             ]
 
@@ -184,6 +191,48 @@ def main(
             + delOcs_tra/(Oc_tra**2)
         )
 
+        # handling altitude
+        try:
+            azi_ta = mpl_d['Azimuth Angle']
+            ele_ta = mpl_d['Elevation Angle']
+            theta_ta, phi_ta = LIDAR2SPHEREFN(np.stack([azi_ta, ele_ta], axis=1),
+                                              np.deg2rad(ANGOFFSET))
+            z_tra = np.cos(theta_ta)[:, None] * r_tra
+
+            # creating theta set and index array
+            theta_a = list(set(theta_ta))
+            # thetaind_d = {theta: i for i, theta in enumerate(theta_a)}
+            # thetaind_ta = np.array([thetaind_d[theta] for theta in theta_ta])
+            # DeltNbintheta_a = list(map(  # shape = (set, 3(Delt, Nbin, theta))
+            #     tuple,
+            #     np.append(
+            #         np.concatenate([DeltNbin_a]*len(theta_a)),
+            #         np.concatenate([theta_a]*len(DeltNbin_a))[..., None],
+            #         axis=-1
+            #     )))
+
+            DeltNbintheta_ta = list(map(
+                tuple,
+                np.append(DeltNbin_ta, theta_ta[:, None], axis=-1)
+            ))
+            DeltNbintheta_a = list(set(DeltNbintheta_ta))
+
+            DeltNbintheta_d = {DeltNbintheta: i
+                               for i, DeltNbintheta in enumerate(DeltNbintheta_a)}
+            DeltNbinthetaind_ta = np.array(list(map(
+                lambda x: DeltNbintheta_d[x],
+                DeltNbintheta_ta
+            )))
+            # DeltNbinthetaind_ta = np.apply_along_axis(
+            #     _indtup2indara_func, -1,
+            #     np.stack((DeltNbinind_ta, thetaind_ta), axis=-1),
+            #     (len(DeltNbin_a), len(theta_a))
+            # )
+
+
+        except KeyError:
+            pass
+
 
         # Storing data
         ret_d = {
@@ -199,16 +248,19 @@ def main(
             'SNR1_tra': NRB1_tra/delNRB2_tra,
             'SNR2_tra': NRB2_tra/delNRB2_tra,
         }
-        if smmpl_boo:
-            theta_ta, phi_ta = LIDAR2SPHEREFN(np.stack(
-                [mpl_d['Azimuth Angle'], mpl_d['Elevation Angle']], axis=1
-            ), np.deg2rad(ANGOFFSET))
+        try:
+            ret_d['z_tra'] = z_tra
             ret_d['theta_ta'] = theta_ta
+            ret_d['theta_a'] = theta_a
             ret_d['phi_ta'] = phi_ta
+            ret_d['DeltNbintheta_a'] = DeltNbintheta_a
+            ret_d['DeltNbinthetaind_ta'] = DeltNbinthetaind_ta
+        except NameError:
+            pass
 
 
-        # writing to file
-        if writeboo:
+    # writing and reading from NRB file
+        if writeboo:            # write to file
             ret_d = {key: ret_d[key].tolist() for key in list(ret_d.keys())}
             with open(DIRCONFN(SOLARISMPLDIR.format(lidarname),
                                DATEFMT.format(starttime),
@@ -234,14 +286,15 @@ def main(
 # testing
 if __name__ == '__main__':
     import matplotlib.pyplot as plt
-    from ...file_readwrite import mpl_reader
+    from ...file_readwrite import smmpl_reader, mpl_reader
 
-    lidarname = 'mpl_S2S'
+    lidarname = 'smmpl_E2'
+    mplreader = smmpl_reader
     mplfile_dir = DIRCONFN(osp.dirname(osp.abspath(__file__)),
-                           'testNRB_mpl_S2S.mpl')
+                           'testNRB_smmpl_E2.mpl')
     starttime, endtime = None, None
     ret_d = main(
-        lidarname, mpl_reader,
+        lidarname, mplreader,
         mplfile_dir,
         starttime, endtime,
         genboo=True,
@@ -260,7 +313,7 @@ if __name__ == '__main__':
     SNR_tra = ret_d['SNR_tra']
 
     print('plotting the following timestamps:')
-    for i in range(a:=300, a+10):
+    for i in range(a := 0, a + 10):
         print(f'\t {ts_ta[i]}')
         ax.plot(r_tra[i][r_trm[i]], NRB1_tra[i][r_trm[i]], color='C0')
         ax.plot(r_tra[i][r_trm[i]], NRB2_tra[i][r_trm[i]], color='C1')

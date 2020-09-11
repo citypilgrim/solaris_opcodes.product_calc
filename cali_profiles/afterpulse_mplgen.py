@@ -29,6 +29,8 @@ def _smooth_func(a, ra):
 
 
 # main func
+@verbose
+@announcer
 def main(
         mplreader, mplfiledir, Dfunc,
         plotboo=False,

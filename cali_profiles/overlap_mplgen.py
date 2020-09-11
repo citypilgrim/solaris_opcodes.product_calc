@@ -19,6 +19,8 @@ def _linearreg_ff(xa):
 
 
 # main func
+@verbose
+@announcer
 def main(mplreader,
          mplfiledir,
          Dfunc,
@@ -26,7 +28,7 @@ def main(mplreader,
          combpolboo=True,
          plotboo=False,
          slicetup=slice(OVERLAPPROFSTART, OVERLAPPROFEND, 1),
-         compstr='f'):
+         compstr='c'):
     '''
     churn out overlap profile based on the indicated bin time.
     Best practise is to utilise the same bin time as the overlap
@@ -241,9 +243,11 @@ def main(mplreader,
     ## trimming delOc after lower limit of regression
     delOc_ra[r0boo_ra] = 0
 
-    fig, (ax, ax1) = plt.subplots(nrows=2, sharex=True)
+
     # plotting linear regression for show
     if plotboo:
+        fig, (ax, ax1) = plt.subplots(nrows=2, sharex=True)
+
         if compstr in ['b', 'c', 'd']:
             for i, lnPH_ra in enumerate(lnPH_tra):
                 p = ax.plot(r_ra, lnPH_ra, 'x')

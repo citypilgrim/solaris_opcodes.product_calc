@@ -5,11 +5,15 @@ import pandas as pd
 import numpy as np
 
 from .deadtime_genread import main as deadtime_genread
-from .afterpulse_csvgen import main as afterpulse_gen
-from .overlap_csvgen import main as overlap_gen
-# from .afterpulse_mplgen import main as afterpulse_gen # not implemented
-# from .overlap_mplgen import main as overlap_gen
+# from .afterpulse_csvgen import main as afterpulse_gen  # legacy code
+# from .overlap_csvgen import main as overlap_gen  # legacy code
+from .afterpulse_mplgen import main as afterpulse_gen
+from .overlap_mplgen import main as overlap_gen
 from ...global_imports.solaris_opcodes import *
+
+
+# params
+_genfuncverb_boo = False
 
 
 # main func
@@ -37,10 +41,6 @@ def main(
     If genboo will utilise the latest afterpulse and overlap .mpl files, and
     deadtime.txt file to perform computations, performing interpolation of both
     data and uncertainty of data (afterpulse and overlap)
-
-    Future
-        - change generation of overlap and afterpulse files to be from .csv to
-          .mpl under ...params, and also under the imports
 
     Parameters
         lidarname (srt): directory name of lidar
@@ -99,18 +99,19 @@ def main(
         ))
 
         ## deadtime
-        Dcoeff_a, D_func = deadtime_genread(deadtimedir, genboo=True)
+        Dcoeff_a, D_func = deadtime_genread(deadtimedir, genboo=True,
+                                            verbboo=_genfuncverb_boo)
 
         ## generating afterpulse and overlap correction profiles
         napOEr_ra, napOE1_ra, napOE2_ra, delnapOE1_ra, delnapOE2_ra =\
             afterpulse_gen(mplreader, afterpulsedir, D_func,
-                           plotboo=plotboo)
-        Ocr_ra, Oc_ra, delOc_ra = \
+                           plotboo=plotboo, verbboo=_genfuncverb_boo)
+        Ocr_ra, Oc_ra, delOc_ra =\
             overlap_gen(mplreader, overlapdir, D_func,
                         [napOEr_ra,
                          napOE1_ra, napOE2_ra,
                          delnapOE1_ra, delnapOE2_ra],
-                        plotboo=plotboo)
+                        plotboo=plotboo, verbboo=_genfuncverb_boo)
 
         ## inter/extrapolate afterpulse and overlap
         Delr = SPEEDOFLIGHT * Delt

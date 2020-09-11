@@ -1,7 +1,12 @@
 # imports
 import numpy as np
 
+from ...global_imports.solaris_opcodes import *
+
+
 # main func
+@verbose
+@announcer
 def main(Ddir, genboo):
     '''
     Parameters
