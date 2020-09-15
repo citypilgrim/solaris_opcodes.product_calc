@@ -18,11 +18,6 @@ def _aaacaliprofiles_func(dim1arr, args, kwargs):
     '''
     return cali_profiles(*args, *dim1arr, **kwargs)
 
-def _D_func(D_func, n_ara):
-    return D_func(n_ara)
-_vecD_func = np.vectorize(_D_func)
-
-
 # main func
 @verbose
 @announcer
@@ -201,15 +196,6 @@ def main(
 
             # creating theta set and index array
             theta_a = list(set(theta_ta))
-            # thetaind_d = {theta: i for i, theta in enumerate(theta_a)}
-            # thetaind_ta = np.array([thetaind_d[theta] for theta in theta_ta])
-            # DeltNbintheta_a = list(map(  # shape = (set, 3(Delt, Nbin, theta))
-            #     tuple,
-            #     np.append(
-            #         np.concatenate([DeltNbin_a]*len(theta_a)),
-            #         np.concatenate([theta_a]*len(DeltNbin_a))[..., None],
-            #         axis=-1
-            #     )))
 
             DeltNbintheta_ta = list(map(
                 tuple,
@@ -223,12 +209,6 @@ def main(
                 lambda x: DeltNbintheta_d[x],
                 DeltNbintheta_ta
             )))
-            # DeltNbinthetaind_ta = np.apply_along_axis(
-            #     _indtup2indara_func, -1,
-            #     np.stack((DeltNbinind_ta, thetaind_ta), axis=-1),
-            #     (len(DeltNbin_a), len(theta_a))
-            # )
-
 
         except KeyError:
             pass

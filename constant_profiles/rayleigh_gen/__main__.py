@@ -16,8 +16,7 @@ _mollidrat = np.pi*8/3   # molecular lidar ratio
 @verbose
 @announcer
 def main(
-        arg_a,
-        # Delt, Nbin, theta=None,
+        Delt, Nbin, theta=0,
         weather=WEATHER, wavelength=WAVELENGTH
 ):
     '''
@@ -35,16 +34,14 @@ def main(
         betam_ra (np.array): molecular backscattering w.r.t altitude
         T2m_ra (np.array): molecular transmission squared w.r.t altitude
     '''
-    print(arg_a)
-    try:
-        Delt, Nbin, theta = arg_a
-    except IndexError:
-        Delt, Nbin = arg_a
-        theta = 0
-
     # reading scattering coefficient file
     ray_file = DIRCONFN(osp.dirname(osp.abspath(__file__)),
                         RAYLEIGHCDFDIR.format(RAYLEIGHCDLAMBDA))
+    print(f'using profile from :{ray_file}')
+    print(f'\tDelt: {Delt}')
+    print(f'\tNbin: {Nbin}')
+    print(f'\ttheta: {theta}')
+
     rayscatdat_nc = nc.Dataset(ray_file, 'r', format='NETNC4_CLASSIC')
     ncr_ra = rayscatdat_nc.variables['range'][:]
     betam_ra = rayscatdat_nc.variables[weather+'_ray'][:]
