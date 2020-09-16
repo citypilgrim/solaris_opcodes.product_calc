@@ -70,7 +70,7 @@ def main(
     if genboo:
         # read .mpl files
         mpl_d = mplreader(
-            lidarname,
+            DIRCONFN(SOLARISMPLDIR.format(lidarname)),
             mplfiledir=mplfiledir,
             starttime=starttime, endtime=endtime,
             filename=None,
