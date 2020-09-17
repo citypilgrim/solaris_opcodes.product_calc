@@ -4,53 +4,66 @@ import numpy as np
 from ....global_imports.solaris_opcodes import *
 
 
-def _findbooisland_func(a, axis=-1):
-    '''
-    finds the start position of a boolean island in a 1d array
-    '''
-    absdiffa = np.abs(np.diff(a, axis=axis))
-    inda = np.argwhere(absdiffa)
-
-
-
-
 # main func
-def main(dzCRprime_tra, CRprime_tra, z_tra, gcdm_trm):
+def main(
+        dzCRprime_ra, gcdm_rm,
+        amin, amax,
+):
     '''
     finds the cloud bottom and corresponding tops according to
     Gradient-based Cloud Detection (GCDM) according to Lewis et. al 2016.
     Overview of MPLNET Version 3 Cloud Detection
 
+    utilizes multiprocessing to apply the gcdm algorithm on the time axis
+
     Parameters
-        CRprime_tra (np.ndarray): refer to paper, two dimensional first axis is
-                                  time, second is altitude
-        dzCRprime_tra (np.ndarray): first derivative of CRprime_tra
-        z_tra (np.ndarray): altitude array, same dimensions as above
-        gcdm_trm (np.ndarray): mask for array for gcdm algorithm
+        dzCRprime_ra (np.ndarray): first derivative of CRprime, refer to paper
+        gcdm_rm (np.ndarray): mask for GCDM
+        amin/max (float): threshold values for GCDM
 
     Return
-        gcdm_ta (np.ndarray): array of list of tuples. Each list signify a single
-                              timestamp, each tuple within a list signifies a cloud
-                              within each tuple is (cld bot [km], cld top [km])
+        gcdm_a (np.ndarray): list of tuples. Each tuple within a list signifies a
+                             cloud. Within each tuple is (cld bot ind, cld top ind)
 
-                              If the corresponding cloud top for a given cloud
-                              bottom is not detected, np.nan is placed.
+                             indices are taken w.r.t to dzCRprime_ta after applying
+                             the gcdm mask
+
+                             If the corresponding cloud top for a given cloud
+                             bottom is not detected, np.nan is placed.
     '''
-    # Computing threshold
-    CRprime0_tra = np.copy(CRprime_tra).flatten()
-    CRprime0_tra[~(gcdm_trm.flatten())] = np.nan  # set to nan to ignore in average
-    CRprime0_tra = CRprime0_tra.reshape(*(gcdm_trm.shape))
-    barCRprime0_ta = np.nanmean(CRprime0_tra, axis=1)
-    amax_ta = KEMPIRICAL * barCRprime0_ta
-    amin_ta = (1 - KEMPIRICAL) * barCRprime0_ta
+    dzCRprime_ra = dzCRprime_ra[gcdm_rm]
 
-    # apply threshold
-    ## finding cloud bases
-    amaxcross_trm = (CRprime0_tra >= amax_ta[:, None])
-    amincross_trm = (CRprime0_tra <= amin_ta[:, None])
+    # finding cloud bases
+    amaxcross_rm = (dzCRprime_ra >= amax)
+    start_boo = amaxcross_rm[0]
+    absdiff_a = np.abs(np.diff(amaxcross_rm, axis=-1))
+    cloudbotind_a = np.argwhere(absdiff_a)[:, 0] + 1
+    if start_boo:
+        cloudbotind_a = np.insert(cloudbotind_a[1::2], 0, 0)
+    else:
+        cloudbotind_a = cloudbotind_a[::2]
 
-    '''brute force compute the gcdm algorithm, but parrelisze the algorithm from
-    each cloud bottom'''
+    # finding cloud top
+    cloudtopind_a = []
+    for cloudbotind in cloudbotind_a:
+
+        crossaminboo_a = dzCRprime_ra[cloudbotind:] < amin
+        if crossaminboo_a.any():  # array val has decreased
+            crossaminind = np.argmax(crossaminboo_a) + cloudbotind
+
+            crossaminboo_a = dzCRprime_ra[crossaminind:] > amin
+            if crossaminboo_a.any():
+                cloudtopind = np.argmax(crossaminboo_a) + crossaminind
+            else:
+                cloudtopind = np.nan
+
+        else:                   # array val did not decrease significantly
+            cloudtopind = np.nan
+
+        cloudtopind_a.append(cloudtopind)
+
+    return list(zip(cloudbotind_a, cloudtopind_a))
+
 
 # testing
 if __name__ == '__main__':
