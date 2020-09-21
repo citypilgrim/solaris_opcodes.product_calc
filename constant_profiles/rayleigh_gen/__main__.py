@@ -22,6 +22,9 @@ def main(
     '''
     function that reads rayleigh-523_sing.cdf, stores data for the stated lambda
 
+    Future
+        - The rayleigh profile and it's uncertainties could be derived from aeronet
+
     Parameters
         arg_a (array like): contains the floowing
             Delt (float): bintime
@@ -33,6 +36,11 @@ def main(
     Return
         betam_ra (np.array): molecular backscattering w.r.t altitude
         T2m_ra (np.array): molecular transmission squared w.r.t altitude
+        betamprime_ra (np.array): attenuated molecular back scattering w.r.t
+                                  altitude
+        delfbetams_ra (np.array): fractional uncertainty of betam_ra squared
+        delfT2ms_ra (np.array): fractional uncertainty of T2m_ra squared
+        delfbetamprimes_ra (np.array): fractional uncertainty of T2m_ra squared
     '''
     # reading scattering coefficient file
     ray_file = DIRCONFN(osp.dirname(osp.abspath(__file__)),
@@ -61,8 +69,18 @@ def main(
     # computing product
     betamprime_ra = betam_ra * Tm2_ra
 
+    # computing uncertainties
+    ra = np.ones_like(betam_ra)
+    delfbetams_ra = (RAYLEIGHMOLUNC**2) * ra
+    delfTm2s_ra = 2*(RAYLEIGHAOTUNC**2) * ra
+    delfbetamprimes_ra = ((RAYLEIGHMOLUNC ** 2) + 2*(RAYLEIGHAOTUNC ** 2)) * ra
+
     # returning
-    return betam_ra, Tm2_ra, betamprime_ra
+    ret_l = [
+        betam_ra, Tm2_ra, betamprime_ra,
+        delfbetams_ra, delfTm2s_ra, delfbetamprimes_ra
+    ]
+    return ret_l
 
 
 # generating

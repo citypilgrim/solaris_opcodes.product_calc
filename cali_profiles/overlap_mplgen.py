@@ -169,8 +169,8 @@ def main(mplreader,
 
 
     # computing del Oc
-    ## computing delPH term; 'SNR' means del<val>/<val>
-    SNRPHs_tra = (
+    ## computing delPH term; 'delf' means del<val>/<val>
+    delfPHs_tra = (
         (
             delPs_tra + delnbs_ta[:, None]
             + (napOE_ra * DELEOVERE * E_ta[:, None])**2
@@ -182,27 +182,27 @@ def main(mplreader,
     ## computing differing term
     if compstr == 'a':          # uncert from linear regression
         delm2sigma, dellnCbeta = np.sqrt(np.diag(lrlnPHpcov))
-        SNRem2sigmas_ra = (r_ra * delm2sigma) ** 2
-        SNRCbetas = dellnCbeta ** 2
+        delfem2sigmas_ra = (r_ra * delm2sigma) ** 2
+        delfCbetas = dellnCbeta ** 2
 
-        SNRPHs_ra = ((len(SNRPHs_tra) * PH_ra)**-2) * np.sum(
-            SNRPHs_tra * (PH_tra**2), axis=0
+        delfPHs_ra = ((len(delfPHs_tra) * PH_ra)**-2) * np.sum(
+            delfPHs_tra * (PH_tra**2), axis=0
         )
 
-        SNRPFs_ra = SNRem2sigmas_ra + SNRCbetas
-        delOc_ra = Oc_ra * np.sqrt(SNRPHs_ra + SNRPFs_ra)
+        delfPFs_ra = delfem2sigmas_ra + delfCbetas
+        delOc_ra = Oc_ra * np.sqrt(delfPHs_ra + delfPFs_ra)
 
     elif compstr == 'b':        # error propagate uncert from linear regression
         delm2sigma_ta, dellnCbeta_ta = np.sqrt(np.array([
             np.diag(ara) for ara in lrlnPHpcov_ta
         ])).T
 
-        SNRem2sigmas_tra = (r_ra * delm2sigma_ta[:, None]) ** 2
-        SNRCbetas_ta = dellnCbeta_ta ** 2
+        delfem2sigmas_tra = (r_ra * delm2sigma_ta[:, None]) ** 2
+        delfCbetas_ta = dellnCbeta_ta ** 2
 
-        SNRPFs_tra = SNRem2sigmas_tra + SNRCbetas_ta[:, None]
-        delOc_ra = (1/len(SNRPHs_tra)) * np.sqrt(np.sum(
-            (Oc_tra**2) * (SNRPHs_tra + SNRPFs_tra), axis=0
+        delfPFs_tra = delfem2sigmas_tra + delfCbetas_ta[:, None]
+        delOc_ra = (1/len(delfPHs_tra)) * np.sqrt(np.sum(
+            (Oc_tra**2) * (delfPHs_tra + delfPFs_tra), axis=0
         ))
 
     elif compstr == 'c':  # error propagate uncert from campbell2002 equations
@@ -211,17 +211,17 @@ def main(mplreader,
         ss_ta = 1/(X-2) * np.sum(np.nan_to_num(lnPH_tra - lnPF_tra)**2, axis=1)
 
         delm2sigma_ta = np.sqrt(X * ss_ta / Omega)
-        SNRem2sigmas_tra = (r_ra * delm2sigma_ta[:, None]) ** 2
+        delfem2sigmas_tra = (r_ra * delm2sigma_ta[:, None]) ** 2
 
         dellnCbeta_ta = np.sqrt(ss_ta/Omega * np.sum(r_ra**2))
-        SNRCbetas_ta = (
+        delfCbetas_ta = (
             (np.exp(lnCbeta_ta + dellnCbeta_ta) - np.exp(lnCbeta_ta))
             + (np.exp(lnCbeta_ta) - np.exp(lnCbeta_ta - dellnCbeta_ta))
         ) / (2 * np.exp(lnCbeta_ta))
 
-        SNRPFs_tra = SNRem2sigmas_tra + SNRCbetas_ta[:, None]
-        delOc_ra = (1/len(SNRPHs_tra)) * np.sqrt(np.sum(
-            (Oc_tra**2) * (SNRPHs_tra + SNRPFs_tra), axis=0
+        delfPFs_tra = delfem2sigmas_tra + delfCbetas_ta[:, None]
+        delOc_ra = (1/len(delfPHs_tra)) * np.sqrt(np.sum(
+            (Oc_tra**2) * (delfPHs_tra + delfPFs_tra), axis=0
         ))
 
     elif compstr == 'd':
@@ -230,14 +230,14 @@ def main(mplreader,
         ss_ta = 1/(X-2) * np.sum(np.nan_to_num(lnPH_tra - lnPF_tra)**2, axis=1)
 
         delm2sigma_ta = np.sqrt(X * ss_ta / Omega)
-        SNRem2sigmas_tra = (r_ra * delm2sigma_ta[:, None]) ** 2
+        delfem2sigmas_tra = (r_ra * delm2sigma_ta[:, None]) ** 2
 
         dellnCbeta_ta = np.sqrt(ss_ta/Omega * np.sum(r_ra**2))
-        SNRCbetas_ta = dellnCbeta_ta ** 2
+        delfCbetas_ta = dellnCbeta_ta ** 2
 
-        SNRPFs_tra = SNRem2sigmas_tra + SNRCbetas_ta[:, None]
-        delOc_ra = (1/len(SNRPHs_tra)) * np.sqrt(np.sum(
-            (Oc_tra**2) * (SNRPHs_tra + SNRPFs_tra), axis=0
+        delfPFs_tra = delfem2sigmas_tra + delfCbetas_ta[:, None]
+        delOc_ra = (1/len(delfPHs_tra)) * np.sqrt(np.sum(
+            (Oc_tra**2) * (delfPHs_tra + delfPFs_tra), axis=0
         ))
 
     ## trimming delOc after lower limit of regression

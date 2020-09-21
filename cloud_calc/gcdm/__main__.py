@@ -51,6 +51,7 @@ def main(
     Parameters
         nrbdic (dict): output from .nrb_calc.py
         combpolboo (boolean): gcdm on combined polarizations or just co pol
+        plotboo (boolean): whether or not to plot computed results
     '''
     # reading data
     if combpolboo:
@@ -60,26 +61,28 @@ def main(
         NRB_tra = nrbdic['NRB2_tra']  # co-pol
         SNR_tra = nrbdic['SNR2_tra']
     r_trm = nrbdic['r_trm']
-    ts_ta = nrbdic['Timestamp']
 
     # retrieving scattering profile
     try:                        # scanning lidar NRB
         setz_a = nrbdic['DeltNbintheta_a']
         setzind_ta = nrbdic['DeltNbinthetaind_ta']
         z_tra = nrbdic['z_tra']
-        theta_ta = nrbdic['theta_ta']
     except KeyError:            # vertical lidar NRB
         setz_a = nrbdic['DeltNbin_a']
         setzind_ta = nrbdic['DeltNbinind_ta']
         z_tra = nrbdic['r_tra']
 
-    betaprimem_raa = np.array(list(map(
-        lambda x: rayleigh_gen(*x), setz_a
-    )))[:, -1, :]
-
-    betamprime_tra = np.array(list(map(
-        lambda x: betaprimem_raa[x], setzind_ta
-    )))
+    # retreiving molecular profile
+    rayleigh_aara = np.array([
+        rayleigh_gen(*setz) for setz in setz_a
+    ])
+    rayleigh_tara = np.array([
+        rayleigh_aara[setzind] for setzind in setzind_ta
+    ])
+    _, _, betamprime_tra, _, _, _ = [
+        tra[0]
+        for tra in np.hsplit(rayleigh_tara, rayleigh_tara.shape[1])
+    ]
 
     # computing gcdm mask
     gcdm_trm = np.arange(r_trm.shape[1])\
@@ -92,7 +95,7 @@ def main(
 
     # Computing threshold
     CRprime0_tra = np.copy(CRprime_tra).flatten()
-    CRprime0_tra[~(gcdm_trm.flatten())] = np.nan  # set to nan to ignore in average
+    CRprime0_tra[~(gcdm_trm.flatten())] = np.nan  # set nan to ignore in average
     CRprime0_tra = CRprime0_tra.reshape(*(gcdm_trm.shape))
     barCRprime0_ta = np.nanmean(CRprime0_tra, axis=1)
     amax_ta = KEMPIRICAL * barCRprime0_ta
@@ -116,47 +119,46 @@ def main(
         yupperlim = z_tra.max()
 
         for i, z_ra in enumerate(z_tra):
-            if i == 0:
 
-                # indexing commonly used arrays
-                gcdm_rm = gcdm_trm[i]
-                amin, amax = amin_ta[i], amax_ta[i]
-                dzCRprime_ra = dzCRprime_tra[i][gcdm_rm]
-                oz_ra = np.copy(z_ra)
-                z_ra = z_ra[gcdm_rm]
+            # indexing commonly used arrays
+            gcdm_rm = gcdm_trm[i]
+            amin, amax = amin_ta[i], amax_ta[i]
+            dzCRprime_ra = dzCRprime_tra[i][gcdm_rm]
+            oz_ra = np.copy(z_ra)
+            z_ra = z_ra[gcdm_rm]
 
-                # plotting first derivative
-                dzCRprime_plot = ax.plot(dzCRprime_ra, z_ra)
-                pltcolor = dzCRprime_plot[0].get_color()
+            # plotting first derivative
+            dzCRprime_plot = ax.plot(dzCRprime_ra, z_ra)
+            pltcolor = dzCRprime_plot[0].get_color()
 
-                ## plotting thresholds
-                ax.vlines([amin, amax], ymin=0, ymax=yupperlim,
-                          color=pltcolor, linestyle='--')
+            ## plotting thresholds
+            ax.vlines([amin, amax], ymin=0, ymax=yupperlim,
+                      color=pltcolor, linestyle='--')
 
-                ## plotting clouds
-                gcdm_a = gcdm_ta[i]
-                for j, tup in enumerate(gcdm_a):
-                    if j >= len(_cloudmarker_l):
-                        j %= len(_cloudmarker_l)
+            ## plotting clouds
+            gcdm_a = gcdm_ta[i]
+            for j, tup in enumerate(gcdm_a):
+                if j >= len(_cloudmarker_l):
+                    j %= len(_cloudmarker_l)
 
-                    cldbotind, cldtopind = tup
-                    ax.scatter(amax, z_ra[cldbotind],
+                cldbotind, cldtopind = tup
+                ax.scatter(amax, z_ra[cldbotind],
+                           color=pltcolor, s=100,
+                           marker=_cloudmarker_l[j], edgecolor='k')
+                try:
+                    ax.scatter(amin, z_ra[cldtopind],
                                color=pltcolor, s=100,
                                marker=_cloudmarker_l[j], edgecolor='k')
-                    try:
-                        ax.scatter(amin, z_ra[cldtopind],
-                                   color=pltcolor, s=100,
-                                   marker=_cloudmarker_l[j], edgecolor='k')
-                    except IndexError:
-                        # for cloud tops that cannot be found
-                        # i.e. cldtopind == np.nan
-                        pass
+                except IndexError:
+                    # for cloud tops that cannot be found
+                    # i.e. cldtopind == np.nan
+                    pass
 
 
-                # plotting zero derivative
-                ax1.plot(CRprime_tra[i], oz_ra)
-                # ax1.vlines([bmax_ta[i]], ymin=0, ymax=yupperlim,
-                #            color=pltcolor, linestyle='--')
+            # plotting zero derivative
+            ax1.plot(CRprime_tra[i], oz_ra)
+            # ax1.vlines([bmax_ta[i]], ymin=0, ymax=yupperlim,
+            #            color=pltcolor, linestyle='--')
 
         ax.set_ylim([0, 5])
         ax1.set_xscale('log')
