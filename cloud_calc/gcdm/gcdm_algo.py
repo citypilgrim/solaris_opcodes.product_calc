@@ -22,14 +22,12 @@ def main(
         amin/max (float): threshold values for GCDM
 
     Return
-        gcdm_a (np.ndarray): list of tuples. Each tuple within a list signifies a
-                             cloud. Within each tuple is (cld bot ind, cld top ind)
-
-                             indices are taken w.r.t to dzCRprime_ta after applying
-                             the gcdm mask
-
-                             If the corresponding cloud top for a given cloud
-                             bottom is not detected, np.nan is placed.
+        gcdm_a (list): list of tuples. Each tuple within a list signifies a
+                       cloud. Within each tuple is (cld bot ind, cld top ind)
+                       indices are taken w.r.t to dzCRprime_ta after applying
+                       the gcdm mask
+                       If the corresponding cloud top for a given cloud
+                       bottom is not detected, np.nan is placed.
     '''
     dzCRprime_ra = dzCRprime_ra[gcdm_rm]
 

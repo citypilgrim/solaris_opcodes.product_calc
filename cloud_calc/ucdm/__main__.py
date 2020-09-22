@@ -1,10 +1,19 @@
 # imports
-import numpy as np
+import multiprocessing as mp
 
+import numpy as np
+import matplotlib.pyplot as plt
+
+from .clearskysearch_conservative_algo import main as clearskysearch_algo
+# from .clearskysearch_liberal_algo import main as clearskysearch_algo
+# from .objthres_level1_func import main as objthres_func
+# from .objthres_level2_func import main as objthres_func
 from ...constant_profiles import rayleigh_gen
 from ....global_imports.solaris_opcodes import *
 
+
 # params
+_cleaskysearch_pool = mp.Pool(processes=UCDMPROCNUM)
 
 
 # main func
@@ -61,17 +70,58 @@ def main(
 
     # computing CRprime
     CRprime_tra = NRB_tra / betamprime_tra
+    '''debug delfCRprimes_tra'''
     delfCRprimes_tra = SNR_tra**-2 + delfbetamprimes_tra
     delCRprime_tra = CRprime_tra * np.sqrt(delfCRprimes_tra)
 
+    # computing no. significant bins
+    N_tra = np.ceil((UCDMEPILSON**2) * delfCRprimes_tra)
+
+    # setting limit on computation range
+    ucdm_trm = r_trm * (z_tra >= UCDMCLEARSKYALTITUDE)
+
     # clear-sky search
-    N_tra = (UCDMEPILSON**2) * delfCRprimes_tra
+    # clearskysearch_taa = np.array([
+    #     _cleaskysearch_pool.apply(
+    #         clearskysearch_algo,
+    #         args=(CRprime_tra[i][ucdm_rm], delCRprime_tra[i][ucdm_rm],
+    #               N_tra[i][ucdm_rm], z_tra[i][ucdm_rm])
+    #     )
+    #     for i, ucdm_rm in enumerate(ucdm_trm)
+    # ])
+    # _cleaskysearch_pool.close()
+    # _cleaskysearch_pool.join()
+    # Cfstar_ta = clearskysearch_taa[:, 0]
+    # delCfstar_ta = clearskysearch_taa[:, -1]
+    # clearskybound_tba = clearskysearch_taa[:, -2:]
+
+    # # computing PAB
+    # PAB_tra = NRB_tra / Cfstar_ta[:, None]
+    # delPAB_tra = PAB_tra * np.sqrt(SNR_tra**-2 + (delCfstar_ta/Cfstar_ta)**2)
+
+    # # computing opjective threshold
+
+    if plotboo:
+        fig, (ax, ax1) = plt.subplots(ncols=2, sharey=True)
+
+        for i, z_ra in enumerate(z_tra):
+            if i == 0:
+                print(N_tra[i])
+                ucdm_rm = ucdm_trm[i]
+                ax.plot(N_tra[i][ucdm_rm], z_ra[ucdm_rm])
+                ax1.plot(CRprime_tra[i][ucdm_rm], z_ra[ucdm_rm])
+
+        ax1.set_xscale('log')
+        plt.show()
+
+
+
 
 
 
 # testing
 if __name__ == '__main__':
-    from ...nrb_calc import nrb_calc
+    from ...nrb_calc import main as nrb_calc
     from ....file_readwrite import smmpl_reader
 
     nrb_d = nrb_calc(

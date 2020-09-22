@@ -171,7 +171,7 @@ def main(
 
 
 if __name__ == '__main__':
-    from ...nrb_calc import nrb_calc
+    from ...nrb_calc import main as nrb_calc
     from ....file_readwrite import smmpl_reader
 
     nrb_d = nrb_calc(

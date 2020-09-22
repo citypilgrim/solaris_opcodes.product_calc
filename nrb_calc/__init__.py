@@ -1,1 +1,1 @@
-from .__main__ import main as nrb_calc
+from .__main__ import main
