@@ -51,7 +51,7 @@ def main(
         setz_a = nrbdic['DeltNbintheta_a']
         setzind_ta = nrbdic['DeltNbinthetaind_ta']
         z_tra = nrbdic['z_tra']
-    except KeyError:            # vertical lidar NRB
+    except KeyError:            # static lidar NRB
         setz_a = nrbdic['DeltNbin_a']
         setzind_ta = nrbdic['DeltNbinind_ta']
         z_tra = nrbdic['r_tra']
@@ -70,30 +70,29 @@ def main(
 
     # computing CRprime
     CRprime_tra = NRB_tra / betamprime_tra
-    '''debug delfCRprimes_tra'''
     delfCRprimes_tra = SNR_tra**-2 + delfbetamprimes_tra
     delCRprime_tra = CRprime_tra * np.sqrt(delfCRprimes_tra)
 
     # computing no. significant bins
-    N_tra = np.ceil((UCDMEPILSON**2) * delfCRprimes_tra)
+    N_tra = np.ceil((UCDMEPILSON**2) * delfCRprimes_tra).astype(np.int)
 
     # setting limit on computation range
     ucdm_trm = r_trm * (z_tra >= UCDMCLEARSKYALTITUDE)
 
     # clear-sky search
-    # clearskysearch_taa = np.array([
-    #     _cleaskysearch_pool.apply(
-    #         clearskysearch_algo,
-    #         args=(CRprime_tra[i][ucdm_rm], delCRprime_tra[i][ucdm_rm],
-    #               N_tra[i][ucdm_rm], z_tra[i][ucdm_rm])
-    #     )
-    #     for i, ucdm_rm in enumerate(ucdm_trm)
-    # ])
-    # _cleaskysearch_pool.close()
-    # _cleaskysearch_pool.join()
-    # Cfstar_ta = clearskysearch_taa[:, 0]
-    # delCfstar_ta = clearskysearch_taa[:, -1]
-    # clearskybound_tba = clearskysearch_taa[:, -2:]
+    clearskysearch_taa = np.array([
+        _cleaskysearch_pool.apply(
+            clearskysearch_algo,
+            args=(CRprime_tra[i][ucdm_rm], delCRprime_tra[i][ucdm_rm],
+                  N_tra[i][ucdm_rm], z_tra[i][ucdm_rm])
+        )
+        for i, ucdm_rm in enumerate(ucdm_trm)
+    ])
+    _cleaskysearch_pool.close()
+    _cleaskysearch_pool.join()
+    Cfstar_ta = clearskysearch_taa[:, 0]
+    delCfstar_ta = clearskysearch_taa[:, -1]
+    clearskybound_tba = clearskysearch_taa[:, -2:]
 
     # # computing PAB
     # PAB_tra = NRB_tra / Cfstar_ta[:, None]
@@ -103,15 +102,34 @@ def main(
 
     if plotboo:
         fig, (ax, ax1) = plt.subplots(ncols=2, sharey=True)
+        ts_ta = nrbdic['Timestamp']
 
         for i, z_ra in enumerate(z_tra):
-            if i == 0:
-                print(N_tra[i])
+            if i == 2:
+                print(ts_ta[i])
                 ucdm_rm = ucdm_trm[i]
+                p = ax1.errorbar(
+                    CRprime_tra[i][ucdm_rm], z_ra[ucdm_rm],
+                    xerr=delCRprime_tra[i][ucdm_rm],
+                    fmt='o', linestyle=''
+                )
+                if clearskybound_tba.any():
+                    print(clearskybound_tba[i])
+                    ax1.hlines(
+                        clearskybound_tba[i],
+                        xmin=CRprime_tra.min(), xmax=CRprime_tra.max(),
+                        color=p[0].get_color(), linestyle='--'
+                    )
+                # ax.plot(NRB_tra[i][ucdm_rm], z_ra[ucdm_rm])
+                # ax.plot(SNR_tra[i][ucdm_rm], z_ra[ucdm_rm])
                 ax.plot(N_tra[i][ucdm_rm], z_ra[ucdm_rm])
-                ax1.plot(CRprime_tra[i][ucdm_rm], z_ra[ucdm_rm])
 
-        ax1.set_xscale('log')
+        ax.set_xscale('log')
+        # ax1.set_xscale('log')
+        ax.set_ylim([0, 10])
+        ax1.set_ylim([0, 10])
+        bounds = 500
+        ax1.set_xlim([-bounds, bounds])
         plt.show()
 
 
@@ -126,9 +144,11 @@ if __name__ == '__main__':
 
     nrb_d = nrb_calc(
         'smmpl_E2', smmpl_reader,
-        '/home/tianli/SOLAR_EMA_project/data/smmpl_E2/20200901/202009010500.mpl',
+        '/home/tianli/SOLAR_EMA_project/data/smmpl_E2/20200307/202003070300.mpl',
+        # '/home/tianli/SOLAR_EMA_project/data/smmpl_E2/20200901/202009010500.mpl',
         # starttime=LOCTIMEFN('202009010000', UTCINFO),
         # endtime=LOCTIMEFN('202009010800', UTCINFO),
+        step=5,
         genboo=True,
     )
 

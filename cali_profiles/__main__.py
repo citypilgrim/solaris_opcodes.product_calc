@@ -198,12 +198,12 @@ def main(
 # running
 if __name__ == '__main__':
     import matplotlib.pyplot as plt
-    from ...file_readwrite import smmplfmt_dic
+    from ...file_readwrite import smmpl_reader
 
     # Delr ~15m, scan mini mpl
     napOE1_ra, napOE2_ra, delnapOE1_ra, delnapOE2_ra,\
         Oc_ra, delOc_ra,\
-        D_func = main('smmpl_E2', 1e-7, 2000,
+        D_func = main('smmpl_E2', 1e-7, 2000, smmpl_reader,
                       genboo=True, writeboo=False, plotboo=True)
 
     # testing

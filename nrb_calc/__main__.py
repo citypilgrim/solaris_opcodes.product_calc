@@ -1,12 +1,17 @@
 # imports
 import json
 import os.path as osp
-
 import numpy as np
 
+from .time_average import main as time_average
 from ..cali_profiles import cali_profiles
 from ...file_readwrite import mpl_reader, smmpl_reader
 from ...global_imports.solaris_opcodes import *
+
+
+# params
+_static_azimuth = 0             # [deg]
+_static_elevation = 90          # [deg]
 
 
 # supp func
@@ -25,6 +30,7 @@ def main(
         lidarname, mplreader,
         mplfiledir=None,
         starttime=None, endtime=None,
+        step=None,
         genboo=True,
         writeboo=False,
 ):
@@ -40,11 +46,13 @@ def main(
         mplfiledir (str): mplfile to be processed if specified, date should be
                           None
         start/endtime (datetime like): approx start/end time of data of interest
+        step (int): if specified, will return a time averaged version of the return
         genboo (boolean): if True, will read .mpl files and generate NRB, return
                           and write
                           if False, will read exisitng nrb files and only return
-        writeboo (boolean): data is written to filename if True,
-                            ignored if genboo is False
+        writeboo (boolean): data is written to filename if True, ignored if genboo
+                            is False.
+                            Does not write time averaged data
 
     Return
         ret_d (dict):
@@ -52,9 +60,9 @@ def main(
             DeltNbinind_ta (np.array): DeltNbin_a indexes for the tra arrays
             r_tra (np.array): shape (time dim, no. range bins)
             r_trm (np.array): shape (time dim, no. range bins), usually all ones
-            NRB1/2_tra (np.array): shape (time dim, no. range bins)
-            delNRB1/2_tra (np.array): shape (time dim, no. range bins)
-            SNR1/2_tra (np.array): shape (time dim, no. range bins)
+            NRB/1/2_tra (np.array): shape (time dim, no. range bins)
+            delNRB/1/2_tra (np.array): shape (time dim, no. range bins)
+            SNR/1/2_tra (np.array): shape (time dim, no. range bins)
 
         if 'Azimiuth Angle' and 'Elevation Angle' are valid keys
             theta/phi_ta (np.array): [rad] if it exsists in the mplfile
@@ -190,6 +198,12 @@ def main(
         try:
             azi_ta = mpl_d['Azimuth Angle']
             ele_ta = mpl_d['Elevation Angle']
+
+            # handling no scanner usage
+            noscanscene_ta = ~(mpl_d['Scan Scenario Flag'].astype(np.bool))
+            azi_ta[noscanscene_ta] = _static_azimuth
+            ele_ta[noscanscene_ta] = _static_elevation
+
             theta_ta, phi_ta = LIDAR2SPHEREFN(np.stack([azi_ta, ele_ta], axis=1),
                                               np.deg2rad(ANGOFFSET))
             z_tra = np.cos(theta_ta)[:, None] * r_tra
@@ -227,6 +241,11 @@ def main(
             'SNR_tra': NRB_tra/delNRB_tra,
             'SNR1_tra': NRB1_tra/delNRB2_tra,
             'SNR2_tra': NRB2_tra/delNRB2_tra,
+            'delNRB1_tra': delNRB1_tra,
+            'delNRB2_tra': delNRB2_tra,
+            'delNRB_tra': delNRB_tra,
+            'P1_tra': P1_tra,
+            'nb1_ta': nb1_ta,
         }
         try:
             ret_d['z_tra'] = z_tra
@@ -259,6 +278,10 @@ def main(
             key: np.array(ret_d[key]) for key in list(ret_d.keys())
         }
 
+    # performing time average
+    if step:
+        ret_d = time_average(ret_d, step)
+
     # returning
     return ret_d
 
@@ -270,8 +293,9 @@ if __name__ == '__main__':
 
     lidarname = 'smmpl_E2'
     mplreader = smmpl_reader
-    mplfile_dir = DIRCONFN(osp.dirname(osp.abspath(__file__)),
-                           'testNRB_smmpl_E2.mpl')
+    # mplfile_dir = DIRCONFN(osp.dirname(osp.abspath(__file__)),
+    #                        'testNRB_smmpl_E2.mpl')
+    mplfile_dir = '/home/tianli/SOLAR_EMA_project/data/smmpl_E2/20200901/202009011700.mpl'
     starttime, endtime = None, None
     ret_d = main(
         lidarname, mplreader,
@@ -281,9 +305,9 @@ if __name__ == '__main__':
         writeboo=False
     )
 
-    fig, (ax, ax1) = plt.subplots(nrows=2, sharex=True)
+    fig, (ax, ax1, ax2) = plt.subplots(nrows=3, sharex=True)
     ts_ta = ret_d['Timestamp']
-    r_tra = ret_d['r_tra']
+    z_tra = ret_d['z_tra']
     r_trm = ret_d['r_trm']
     NRB1_tra = ret_d['NRB1_tra']
     NRB2_tra = ret_d['NRB2_tra']
@@ -293,17 +317,22 @@ if __name__ == '__main__':
     SNR_tra = ret_d['SNR_tra']
 
     print('plotting the following timestamps:')
-    for i in range(a := 0, a + 10):
+    for i in range(a := 0, a + 1):
         print(f'\t {ts_ta[i]}')
-        ax.plot(r_tra[i][r_trm[i]], NRB1_tra[i][r_trm[i]], color='C0')
-        ax.plot(r_tra[i][r_trm[i]], NRB2_tra[i][r_trm[i]], color='C1')
-        ax.plot(r_tra[i][r_trm[i]], NRB_tra[i][r_trm[i]], color='C2')
-        ax1.plot(r_tra[i][r_trm[i]], SNR1_tra[i][r_trm[i]], color='C0')
-        ax1.plot(r_tra[i][r_trm[i]], SNR2_tra[i][r_trm[i]], color='C1')
-        ax1.plot(r_tra[i][r_trm[i]], SNR_tra[i][r_trm[i]], color='C2')
+        # ax.plot(z_tra[i][r_trm[i]], NRB1_tra[i][r_trm[i]], color='C0')
+        # ax.plot(z_tra[i][r_trm[i]], NRB2_tra[i][r_trm[i]], color='C1')
+        ax.plot(z_tra[i][r_trm[i]], NRB_tra[i][r_trm[i]], color='C2')
+        # ax1.plot(z_tra[i][r_trm[i]], SNR1_tra[i][r_trm[i]], color='C0')
+        # ax1.plot(z_tra[i][r_trm[i]], SNR2_tra[i][r_trm[i]], color='C1')
+        ax1.plot(z_tra[i][r_trm[i]], SNR_tra[i][r_trm[i]], color='C2')
+        ax2.plot(
+            z_tra[i][r_trm[i]], ret_d['nb1_ta'][i]*np.ones_like(z_tra[i][r_trm[i]]),
+            z_tra[i][r_trm[i]], ret_d['P1_tra'][i][r_trm[i]],
+            color='C2'
+        )
 
     # ax.set_yscale('log')
     # ax1.set_yscale('log')
-    ax1.set_ylim([0, NOISEALTITUDE])
+    # ax1.set_ylim([0, NOISEALTITUDE])
     plt.xlim([0, 20])
     plt.show()
