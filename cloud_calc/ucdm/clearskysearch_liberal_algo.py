@@ -31,9 +31,9 @@ def main(
     CRprime_a = CRprime_ra
     delCRprime_a = delCRprime_ra
     for i, CRprime in enumerate(CRprime_ra):
-        delCRprime = delCRprime_ra[i:]
+        delCRprime = delCRprime_ra[i]
         N = N_ra[i]
-        CRprime_a = CRprime[1:]
+        CRprime_a = CRprime_a[1:]
         delCRprime_a = delCRprime_a[1:]
 
         if N > CRprime_a.size:
@@ -50,7 +50,7 @@ def main(
                 highaltind = np.argmax(~boo_a)
 
                 Cfstar = CRprime_a[:highaltind].mean()
-                delCfstar = CRprime_a[:highaltind].stdev()
+                delCfstar = CRprime_a[:highaltind].std()
                 lowalt = z_ra[i+1]
                 highalt = z_ra[i+highaltind]
 

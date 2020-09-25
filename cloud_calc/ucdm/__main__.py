@@ -4,8 +4,8 @@ import multiprocessing as mp
 import numpy as np
 import matplotlib.pyplot as plt
 
-from .clearskysearch_conservative_algo import main as clearskysearch_algo
-# from .clearskysearch_liberal_algo import main as clearskysearch_algo
+# from .clearskysearch_conservative_algo import main as clearskysearch_algo
+from .clearskysearch_liberal_algo import main as clearskysearch_algo
 # from .objthres_level1_func import main as objthres_func
 # from .objthres_level2_func import main as objthres_func
 from ...constant_profiles import rayleigh_gen
@@ -105,9 +105,14 @@ def main(
         ts_ta = nrbdic['Timestamp']
 
         for i, z_ra in enumerate(z_tra):
-            if i == 2:
-                print(ts_ta[i])
+            if i == 9:
+            # if i in [1, 2, 3, 4]:
                 ucdm_rm = ucdm_trm[i]
+
+                print(ts_ta[i])
+                delCRprime_val = delCRprime_tra[i][ucdm_rm]
+                print(f'delCRprime stats: {delCRprime_val.mean()} +/- {delCRprime_val.std()}')
+
                 p = ax1.errorbar(
                     CRprime_tra[i][ucdm_rm], z_ra[ucdm_rm],
                     xerr=delCRprime_tra[i][ucdm_rm],
@@ -115,21 +120,22 @@ def main(
                 )
                 if clearskybound_tba.any():
                     print(clearskybound_tba[i])
-                    ax1.hlines(
-                        clearskybound_tba[i],
-                        xmin=CRprime_tra.min(), xmax=CRprime_tra.max(),
-                        color=p[0].get_color(), linestyle='--'
-                    )
-                # ax.plot(NRB_tra[i][ucdm_rm], z_ra[ucdm_rm])
+                    for clearskybound in clearskybound_tba[i]:
+                        ax1.axhline(
+                            clearskybound,
+                            color=p[0].get_color(), linestyle='--'
+                        )
+                ax.plot(NRB_tra[i][ucdm_rm], z_ra[ucdm_rm])
                 # ax.plot(SNR_tra[i][ucdm_rm], z_ra[ucdm_rm])
-                ax.plot(N_tra[i][ucdm_rm], z_ra[ucdm_rm])
+                # ax.plot(N_tra[i][ucdm_rm], z_ra[ucdm_rm])
 
         ax.set_xscale('log')
         # ax1.set_xscale('log')
-        ax.set_ylim([0, 10])
-        ax1.set_ylim([0, 10])
-        bounds = 500
-        ax1.set_xlim([-bounds, bounds])
+        ylowerlim, yupperlim = 0, 10
+        ax.set_ylim([ylowerlim, yupperlim])
+        # ax1.set_ylim([ylowerlim, yupperlim])
+        xlowerlim, xupperlim = -8e3, 8e3
+        # ax1.set_xlim([xlowerlim, xupperlim])
         plt.show()
 
 
@@ -144,11 +150,11 @@ if __name__ == '__main__':
 
     nrb_d = nrb_calc(
         'smmpl_E2', smmpl_reader,
-        '/home/tianli/SOLAR_EMA_project/data/smmpl_E2/20200307/202003070300.mpl',
-        # '/home/tianli/SOLAR_EMA_project/data/smmpl_E2/20200901/202009010500.mpl',
+        # '/home/tianli/SOLAR_EMA_project/data/smmpl_E2/20200307/202003070300.mpl',
+        '/home/tianli/SOLAR_EMA_project/data/smmpl_E2/20200901/202009010500.mpl',
         # starttime=LOCTIMEFN('202009010000', UTCINFO),
         # endtime=LOCTIMEFN('202009010800', UTCINFO),
-        step=5,
+        timestep=None, rangestep=None,
         genboo=True,
     )
 

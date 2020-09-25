@@ -30,7 +30,7 @@ def main(
         lidarname, mplreader,
         mplfiledir=None,
         starttime=None, endtime=None,
-        step=None,
+        timestep=None, rangestep=None,
         genboo=True,
         writeboo=False,
 ):
@@ -46,7 +46,12 @@ def main(
         mplfiledir (str): mplfile to be processed if specified, date should be
                           None
         start/endtime (datetime like): approx start/end time of data of interest
-        step (int): if specified, will return a time averaged version of the return
+        timestep (int): if specified, will return a time averaged version of the
+                        original,
+                        i.e. new timedelta = timedelta * timestep
+        rangestep (int): if specified, will return a spatially resampled version
+                         of the original,
+                         i.e. new range bin size = range bin * rangestep
         genboo (boolean): if True, will read .mpl files and generate NRB, return
                           and write
                           if False, will read exisitng nrb files and only return
@@ -82,6 +87,7 @@ def main(
             mplfiledir=mplfiledir,
             starttime=starttime, endtime=endtime,
             filename=None,
+            rstep=rangestep
         )
 
         ts_ta = mpl_d['Timestamp']
@@ -279,8 +285,8 @@ def main(
         }
 
     # performing time average
-    if step:
-        ret_d = time_average(ret_d, step)
+    if timestep:
+        ret_d = time_average(ret_d, timestep)
 
     # returning
     return ret_d
