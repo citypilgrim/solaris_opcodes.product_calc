@@ -6,7 +6,7 @@ import matplotlib.pyplot as plt
 
 # from .clearskysearch_conservative_algo import main as clearskysearch_algo
 from .clearskysearch_liberal_algo import main as clearskysearch_algo
-# from .objthres_level1_func import main as objthres_func
+from .objthres_level1_func import main as objthres_func
 # from .objthres_level2_func import main as objthres_func
 from ...constant_profiles import rayleigh_gen
 from ....global_imports.solaris_opcodes import *
@@ -32,6 +32,9 @@ def main(
     Here CRprime and Cstar from the paper are equivalent. In our computations
     we do not perform time averaging of our profiles
 
+    Future
+        - rayleigh profile computed does not have padding
+
     Parameters
         nrbdic (dict): output from .nrb_calc.py
         combpolboo (boolean): gcdm on combined polarizations or just co pol
@@ -44,6 +47,7 @@ def main(
     else:
         NRB_tra = nrbdic['NRB2_tra']  # co-pol
         SNR_tra = nrbdic['SNR2_tra']
+    delNRB_tra = NRB_tra/SNR_tra
     r_trm = nrbdic['r_trm']
 
     # retrieving scattering profile
@@ -64,16 +68,16 @@ def main(
         rayleigh_aara[setzind] for setzind in setzind_ta
     ])
     _, _, betamprime_tra, _, _, delfbetamprimes_tra = [
-        tra[0]
+        tra[:, 0, :]
         for tra in np.hsplit(rayleigh_tara, rayleigh_tara.shape[1])
     ]
 
-    # computing CRprime
+    # CRprime
     CRprime_tra = NRB_tra / betamprime_tra
     delfCRprimes_tra = SNR_tra**-2 + delfbetamprimes_tra
     delCRprime_tra = CRprime_tra * np.sqrt(delfCRprimes_tra)
 
-    # computing no. significant bins
+    # no. significant bins
     N_tra = np.ceil((UCDMEPILSON**2) * delfCRprimes_tra).astype(np.int)
 
     # setting limit on computation range
@@ -94,30 +98,72 @@ def main(
     delCfstar_ta = clearskysearch_taa[:, -1]
     clearskybound_tba = clearskysearch_taa[:, -2:]
 
-    # # computing PAB
-    # PAB_tra = NRB_tra / Cfstar_ta[:, None]
-    # delPAB_tra = PAB_tra * np.sqrt(SNR_tra**-2 + (delCfstar_ta/Cfstar_ta)**2)
+    # PAB
+    PAB_tra = NRB_tra / Cfstar_ta[:, None]
+    delPAB_tra = PAB_tra * np.sqrt(
+        SNR_tra**-2 + (delCfstar_ta/Cfstar_ta)[:, None]**2
+    )
 
-    # # computing opjective threshold
+    # objective threshold
+    alpha_tra = objthres_func(
+        delCfstar_ta, Cfstar_ta,
+        betamprime_tra,
+        delNRB_tra,
+    )
 
+    # particulate base layer mask
+    baselayerheight_trm = (PAB_tra - delPAB_tra > alpha_tra) * ucdm_trm
+
+
+    # plotting
     if plotboo:
-        fig, (ax, ax1) = plt.subplots(ncols=2, sharey=True)
+        fig, (ax, ax1, ax2, ax3) = plt.subplots(ncols=4, sharey=True)
         ts_ta = nrbdic['Timestamp']
+        theta_ta = nrbdic['theta_ta']
 
         for i, z_ra in enumerate(z_tra):
+            # if i in range(a:=0, a+10):
             if i == 9:
-            # if i in [1, 2, 3, 4]:
+                r_rm = r_trm[i]
                 ucdm_rm = ucdm_trm[i]
+                baselayerheight_rm = baselayerheight_trm[i]
 
+                # checking some vital info
                 print(ts_ta[i])
                 delCRprime_val = delCRprime_tra[i][ucdm_rm]
                 print(f'delCRprime stats: {delCRprime_val.mean()} +/- {delCRprime_val.std()}')
+                print(f'max alt:{z_tra[i].max()}')
+                print(f'theta:{np.rad2deg(theta_ta[i])}')
+                print(f'max range:{z_tra[i].max()/np.cos(theta_ta[i])}')
 
-                p = ax1.errorbar(
-                    CRprime_tra[i][ucdm_rm], z_ra[ucdm_rm],
-                    xerr=delCRprime_tra[i][ucdm_rm],
-                    fmt='o', linestyle=''
+                print(f'binsize:{(z_ra[1]-z_ra[0])/np.cos(theta_ta[i])}')
+
+                # plot cloud search
+                baselayerheight_ra = z_ra[baselayerheight_rm]
+                p = ax3.plot(
+                    np.zeros_like(baselayerheight_ra), baselayerheight_ra,
+                    marker='o', linestyle=''
                 )
+
+                # plot thresholding
+                p = ax2.errorbar(
+                    PAB_tra[i][ucdm_rm], z_ra[ucdm_rm],
+                    xerr=delPAB_tra[i][ucdm_rm],
+                    fmt='o', linestyle='-',
+                    label='PAB'
+                )
+                ax2.plot(
+                    alpha_tra[i][ucdm_rm], z_ra[ucdm_rm],
+                    color=p[0].get_color(), linestyle='dashdot',
+                    label='alpha'
+                )
+                ax2.plot(
+                    betamprime_tra[i][ucdm_rm], z_ra[ucdm_rm],
+                    color=p[0].get_color(), linestyle='dotted',
+                    label='rayleigh'
+                )
+
+                # plot for clear sky search
                 if clearskybound_tba.any():
                     print(clearskybound_tba[i])
                     for clearskybound in clearskybound_tba[i]:
@@ -125,17 +171,32 @@ def main(
                             clearskybound,
                             color=p[0].get_color(), linestyle='--'
                         )
-                ax.plot(NRB_tra[i][ucdm_rm], z_ra[ucdm_rm])
-                # ax.plot(SNR_tra[i][ucdm_rm], z_ra[ucdm_rm])
+                p = ax1.errorbar(
+                    CRprime_tra[i][ucdm_rm], z_ra[ucdm_rm],
+                    xerr=delCRprime_tra[i][ucdm_rm],
+                    fmt='o', linestyle=''
+                )
+
+                # plot unprocessed data
+                ax.plot(NRB_tra[i][r_rm], z_ra[r_rm])
+                # ax.plot(SNR_tra[i][r_rm], z_ra[r_rm])
                 # ax.plot(N_tra[i][ucdm_rm], z_ra[ucdm_rm])
+
 
         ax.set_xscale('log')
         # ax1.set_xscale('log')
-        ylowerlim, yupperlim = 0, 10
+
+        ylowerlim, yupperlim = 0, 20
         ax.set_ylim([ylowerlim, yupperlim])
         # ax1.set_ylim([ylowerlim, yupperlim])
         xlowerlim, xupperlim = -8e3, 8e3
         # ax1.set_xlim([xlowerlim, xupperlim])
+
+        ax3.legend()
+        ax2.legend()
+        ax1.legend()
+        ax.legend()
+
         plt.show()
 
 
@@ -152,9 +213,10 @@ if __name__ == '__main__':
         'smmpl_E2', smmpl_reader,
         # '/home/tianli/SOLAR_EMA_project/data/smmpl_E2/20200307/202003070300.mpl',
         '/home/tianli/SOLAR_EMA_project/data/smmpl_E2/20200901/202009010500.mpl',
+        # '/home/tianli/SOLAR_EMA_project/data/smmpl_E2/20200930/202009300400.mpl',
         # starttime=LOCTIMEFN('202009010000', UTCINFO),
         # endtime=LOCTIMEFN('202009010800', UTCINFO),
-        timestep=None, rangestep=None,
+        timestep=0, rangestep=5,
         genboo=True,
     )
 

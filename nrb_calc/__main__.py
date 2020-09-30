@@ -3,6 +3,7 @@ import json
 import os.path as osp
 import numpy as np
 
+from .range_resampler import main as range_resampler
 from .time_average import main as time_average
 from ..cali_profiles import cali_profiles
 from ...file_readwrite import mpl_reader, smmpl_reader
@@ -87,7 +88,6 @@ def main(
             mplfiledir=mplfiledir,
             starttime=starttime, endtime=endtime,
             filename=None,
-            rstep=rangestep
         )
 
         ts_ta = mpl_d['Timestamp']
@@ -250,8 +250,6 @@ def main(
             'delNRB1_tra': delNRB1_tra,
             'delNRB2_tra': delNRB2_tra,
             'delNRB_tra': delNRB_tra,
-            'P1_tra': P1_tra,
-            'nb1_ta': nb1_ta,
         }
         try:
             ret_d['z_tra'] = z_tra
@@ -288,6 +286,13 @@ def main(
     if timestep:
         ret_d = time_average(ret_d, timestep)
 
+
+    # resampling; if specified
+    if rangestep:
+        print(f'performing resampling with {rangestep=}')
+        ret_d = range_resampler(ret_d, rangestep)
+
+
     # returning
     return ret_d
 
@@ -295,13 +300,14 @@ def main(
 # testing
 if __name__ == '__main__':
     import matplotlib.pyplot as plt
+    import pandas as pd
     from ...file_readwrite import smmpl_reader, mpl_reader
 
     lidarname = 'smmpl_E2'
     mplreader = smmpl_reader
     # mplfile_dir = DIRCONFN(osp.dirname(osp.abspath(__file__)),
     #                        'testNRB_smmpl_E2.mpl')
-    mplfile_dir = '/home/tianli/SOLAR_EMA_project/data/smmpl_E2/20200901/202009011700.mpl'
+    mplfile_dir = '/home/tianli/SOLAR_EMA_project/data/smmpl_E2/20200930/202009300734.mpl'
     starttime, endtime = None, None
     ret_d = main(
         lidarname, mplreader,
@@ -310,8 +316,6 @@ if __name__ == '__main__':
         genboo=True,
         writeboo=False
     )
-
-    fig, (ax, ax1, ax2) = plt.subplots(nrows=3, sharex=True)
     ts_ta = ret_d['Timestamp']
     z_tra = ret_d['z_tra']
     r_trm = ret_d['r_trm']
@@ -322,23 +326,42 @@ if __name__ == '__main__':
     SNR2_tra = ret_d['SNR2_tra']
     SNR_tra = ret_d['SNR_tra']
 
+    # reading sigmaMPL data
+    mplcsvfile_dir = '/home/tianli/SOLAR_EMA_project/data/smmpl_E2/20200930/202009300734_NRB.csv'
+    sigmaNRB = pd.read_csv(mplcsvfile_dir, header=1, index_col=0).to_numpy().T
+    polcut_ind = int((sigmaNRB.shape[1]+1)/2)
+    sigmar_ra = pd.read_csv(mplcsvfile_dir, header=1)['Unnamed: 0'][:polcut_ind]
+    sigmaNRB1_tra = sigmaNRB[:, :polcut_ind]
+    sigmaNRB2_tra = sigmaNRB[:, polcut_ind:]
+    sigmaNRB_tra = sigmaNRB1_tra + sigmaNRB2_tra
+
+    # figure creating
+    fig, (ax, ax1, ax2) = plt.subplots(nrows=3, sharex=True)
+
     print('plotting the following timestamps:')
     for i in range(a := 0, a + 1):
         print(f'\t {ts_ta[i]}')
+
+        # plotting computed data
+
         # ax.plot(z_tra[i][r_trm[i]], NRB1_tra[i][r_trm[i]], color='C0')
         # ax.plot(z_tra[i][r_trm[i]], NRB2_tra[i][r_trm[i]], color='C1')
         ax.plot(z_tra[i][r_trm[i]], NRB_tra[i][r_trm[i]], color='C2')
         # ax1.plot(z_tra[i][r_trm[i]], SNR1_tra[i][r_trm[i]], color='C0')
         # ax1.plot(z_tra[i][r_trm[i]], SNR2_tra[i][r_trm[i]], color='C1')
         ax1.plot(z_tra[i][r_trm[i]], SNR_tra[i][r_trm[i]], color='C2')
-        ax2.plot(
-            z_tra[i][r_trm[i]], ret_d['nb1_ta'][i]*np.ones_like(z_tra[i][r_trm[i]]),
-            z_tra[i][r_trm[i]], ret_d['P1_tra'][i][r_trm[i]],
-            color='C2'
-        )
+        # ax2.plot(
+            # z_tra[i][r_trm[i]], ret_d['nb1_ta'][i]*np.ones_like(z_tra[i][r_trm[i]]),
+        #     z_tra[i][r_trm[i]], ret_d['P1_tra'][i][r_trm[i]],
+        #     color='C2'
+        # )
+
+        # plotting comparison with sigmaMPL
+        ax.plot(sigmar_ra, sigmaNRB_tra[i], color='k')
+
 
     # ax.set_yscale('log')
     # ax1.set_yscale('log')
     # ax1.set_ylim([0, NOISEALTITUDE])
-    plt.xlim([0, 20])
+    plt.xlim([0, 15])
     plt.show()

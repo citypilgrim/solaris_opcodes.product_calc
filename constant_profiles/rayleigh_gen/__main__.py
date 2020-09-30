@@ -56,7 +56,7 @@ def main(
 
     # interpolating
     Delz = Delt * SPEEDOFLIGHT * np.cos(theta)
-    z_ra = Delz * np.arange(Nbin) + Delz/2
+    z_ra = Delz * np.arange(Nbin)
     betam_ra = np.interp(z_ra, ncr_ra, betam_ra)
 
     # computing back scatter

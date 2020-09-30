@@ -5,10 +5,10 @@ import pandas as pd
 import numpy as np
 
 from .deadtime_genread import main as deadtime_genread
-# from .afterpulse_csvgen import main as afterpulse_gen  # legacy code
-# from .overlap_csvgen import main as overlap_gen  # legacy code
-from .afterpulse_mplgen import main as afterpulse_gen
-from .overlap_mplgen import main as overlap_gen
+from .afterpulse_csvgen import main as afterpulse_gen  # legacy code
+from .overlap_csvgen import main as overlap_gen  # legacy code
+# from .afterpulse_mplgen import main as afterpulse_gen
+# from .overlap_mplgen import main as overlap_gen
 from ...global_imports.solaris_opcodes import *
 
 
