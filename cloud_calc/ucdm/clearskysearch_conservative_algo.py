@@ -49,7 +49,8 @@ def main(
 
             if boo_a[:N].all():  # passed the clear sky requirement
                 Cfstar = CRprime_a[:N].mean()
-                delCfstar = CRprime_a[:N].std()
+                delCfstar = np.sqrt((delCRprime_a[:N]**2).sum())/N
+                # delCfstar = CRprime_a[:N].std()
                 lowalt = z_ra[i+1]
                 highalt = z_ra[i+N]
 

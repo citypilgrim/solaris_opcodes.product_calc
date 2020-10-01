@@ -50,7 +50,8 @@ def main(
                 highaltind = np.argmax(~boo_a)
 
                 Cfstar = CRprime_a[:highaltind].mean()
-                delCfstar = CRprime_a[:highaltind].std()
+                delCfstar = np.sqrt((delCRprime_a[:highaltind]**2).sum())/N
+                # delCfstar = CRprime_a[:highaltind].std()
                 lowalt = z_ra[i+1]
                 highalt = z_ra[i+highaltind]
 

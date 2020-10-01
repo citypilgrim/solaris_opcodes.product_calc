@@ -1,6 +1,5 @@
 # imports
 import json
-import os.path as osp
 import numpy as np
 
 from .range_resampler import main as range_resampler
@@ -62,8 +61,8 @@ def main(
 
     Return
         ret_d (dict):
-            DeltNbin_a (list): set of zipped Delt_ta and Nbin_ta
-            DeltNbinind_ta (np.array): DeltNbin_a indexes for the tra arrays
+            DeltNbinpad_a (list): set of zipped Delt_ta and Nbin_ta and pad_ta
+            DeltNbinpadind_ta (np.array): DeltNbinpad_a indexes for the tra arrays
             r_tra (np.array): shape (time dim, no. range bins)
             r_trm (np.array): shape (time dim, no. range bins), usually all ones
             NRB/1/2_tra (np.array): shape (time dim, no. range bins)
@@ -76,8 +75,9 @@ def main(
                                      corrected
             theta_a (np.array): set of theta values
             z_tra (np.array): [km] altitude, if theta_ta exists
-            DeltNbintheta_a (list): set of zipped Delta_ta, Nbin_ta, theta_ta
-            DeltNbinthetaind_ta (np.array): DeltNbin_a thetaindexes for the tra
+            DeltNbinpadtheta_a (list): set of zipped Delta_ta, Nbin_ta, pad_ta,
+                                       theta_ta
+            DeltNbinpadthetaind_ta (np.array): DeltNbinpad_a thetaindexes for the tra
                                             arrays
     '''
     # computation
@@ -101,7 +101,8 @@ def main(
         N_ta = mpl_d['Shots Sum']
 
         Delt_ta = mpl_d['Bin Time']  # temporal size of bin
-        Nbin_ta = mpl_d['Number Bins']
+        Nbin_ta = mpl_d['Number Data Bins']
+        pad_ta = mpl_d['Pad']   # front padding in each range array)
 
         nb1_ta = mpl_d['Background Average']
         delnb1s_ta = mpl_d['Background Std Dev']**2
@@ -117,15 +118,14 @@ def main(
 
         # retrieve calibration files
         ## calc needed calibration files
-        DeltNbin_ta = list(zip(Delt_ta, Nbin_ta))
-        DeltNbin_a = list(set(DeltNbin_ta))
+        DeltNbinpad_ta = list(zip(Delt_ta, Nbin_ta, pad_ta))
+        DeltNbinpad_a = list(set(DeltNbinpad_ta))
         napOE1_raa, napOE2_raa, delnapOE1s_raa, delnapOE2s_raa,\
             Oc_raa, delOcs_raa,\
             D_funca = np.apply_along_axis(
-                _aaacaliprofiles_func, 0, np.array(DeltNbin_a).T,
+                _aaacaliprofiles_func, 0, np.array(DeltNbinpad_a).T,
                 (lidarname, ), {
                     'mplreader': mplreader,
-                    'genboo': True,
                     'plotboo': False,
                     'verbboo': True
                 }
@@ -134,15 +134,14 @@ def main(
                      Oc_raa, delOcs_raa]
         D_func = D_funca[0]    # D_func's are all the same for the same lidar
         ## indexing calculated files
-        DeltNbin_d = {DeltNbin: i for i, DeltNbin in enumerate(DeltNbin_a)}
-        DeltNbinind_ta = np.array(list(map(lambda x: DeltNbin_d[x],
-                                           DeltNbin_ta)))
+        DeltNbinpad_d = {DeltNbinpad: i for i, DeltNbinpad in enumerate(DeltNbinpad_a)}
+        DeltNbinpadind_ta = np.array(list(map(lambda x: DeltNbinpad_d[x],
+                                           DeltNbinpad_ta)))
         napOE1_tra, napOE2_tra, delnapOE1s_tra, delnapOE2s_tra,\
             Oc_tra, delOcs_tra = [
-                np.array(list(map(lambda x: raa[x],  DeltNbinind_ta)))
+                np.array(list(map(lambda x: raa[x],  DeltNbinpadind_ta)))
                 for raa in cali_raal
             ]
-
 
         # change dtype of channels to cope for D_func calculation
         n1_tra = n1_tra.astype(np.float64)
@@ -164,6 +163,7 @@ def main(
 
 
         # compute NRB
+        print(napOE1_tra.shape, P1_tra.shape)
         NRB1_tra = (
             (P1_tra - nb1_ta[:, None]) / E_ta[:, None]
             - napOE1_tra
@@ -217,17 +217,19 @@ def main(
             # creating theta set and index array
             theta_a = list(set(theta_ta))
 
-            DeltNbintheta_ta = list(map(
+            DeltNbinpadtheta_ta = list(map(
                 tuple,
-                np.append(DeltNbin_ta, theta_ta[:, None], axis=-1)
+                np.append(DeltNbinpad_ta, theta_ta[:, None], axis=-1)
             ))
-            DeltNbintheta_a = list(set(DeltNbintheta_ta))
+            DeltNbinpadtheta_a = list(set(DeltNbinpadtheta_ta))
 
-            DeltNbintheta_d = {DeltNbintheta: i
-                               for i, DeltNbintheta in enumerate(DeltNbintheta_a)}
-            DeltNbinthetaind_ta = np.array(list(map(
-                lambda x: DeltNbintheta_d[x],
-                DeltNbintheta_ta
+            DeltNbinpadtheta_d = {
+                DeltNbinpadtheta: i
+                for i, DeltNbinpadtheta in enumerate(DeltNbinpadtheta_a)
+            }
+            DeltNbinpadthetaind_ta = np.array(list(map(
+                lambda x: DeltNbinpadtheta_d[x],
+                DeltNbinpadtheta_ta
             )))
 
         except KeyError:
@@ -237,8 +239,8 @@ def main(
         # Storing data
         ret_d = {
             'Timestamp': ts_ta,
-            'DeltNbin_a': DeltNbin_a,
-            'DeltNbinind_ta': DeltNbinind_ta,
+            'DeltNbinpad_a': DeltNbinpad_a,
+            'DeltNbinpadind_ta': DeltNbinpadind_ta,
             'r_tra': r_tra,
             'r_trm': r_trm,
             'NRB_tra': NRB_tra,
@@ -256,8 +258,8 @@ def main(
             ret_d['theta_ta'] = theta_ta
             ret_d['theta_a'] = theta_a
             ret_d['phi_ta'] = phi_ta
-            ret_d['DeltNbintheta_a'] = DeltNbintheta_a
-            ret_d['DeltNbinthetaind_ta'] = DeltNbinthetaind_ta
+            ret_d['DeltNbinpadtheta_a'] = DeltNbinpadtheta_a
+            ret_d['DeltNbinpadthetaind_ta'] = DeltNbinpadthetaind_ta
         except NameError:
             pass
 
@@ -270,7 +272,6 @@ def main(
                                NRBDIR.format(starttime, endtime)),
                       'w') as json_file:
                 json_file.write(json.dumps(ret_d))
-
 
     else:                       # reading from file
         with open(DIRCONFN(SOLARISMPLDIR.format(lidarname),

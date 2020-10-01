@@ -30,38 +30,55 @@ _keypad_d = {                   # operations on array which have been
 # main func
 def main(nrb_d, rangestep):
     '''
-    Due to possible unequal lengths of the arrays, the arrays are treated
-    individually and padded from the rear with zeros.
-    This also applies to the net mask
-
-    Only pads the required amount
+    Does not change the padding of the arrays
     '''
+    # DeltNbinpadtheta_a or DeltNbinpad_a
+    try:
+        Delt_a, Nbin_a, pad_a, theta_a = list(zip(*nrb_d['DeltNbinpadtheta_a']))
+        Delt_a = np.array(Delt_a) * rangestep
+        oldNbin_a = Nbin_a
+        Nbin_a = np.array(Nbin_a, dtype=np.int)/rangestep
+        pad_a = np.array(pad_a, dtype=np.int)
+        nrb_d['DeltNbinpadtheta_a'] = list(zip(Delt_a, Nbin_a, pad_a, theta_a))
+        indkey = 'DeltNbinpadthetaind_ta'
+    except KeyError:            # mpl files (no scanning) has no theta component
+        Delt_a, Nbin_a, pad_a = list(zip(*nrb_d['DeltNbinpad_a']))
+        Delt_a = np.array(Delt_a) * rangestep
+        oldNbin_a = Nbin_a
+        Nbin_a = np.array(Nbin_a, dtype=np.int)/rangestep
+        pad_a = np.array(pad_a, dtype=np.int)
+        nrb_d['DeltNbinpad_a'] = list(zip(Delt_a, Nbin_a, pad_a))
+        indkey = 'DeltNbinpadind_ta'
+
+
     # performing reshaping operation
-    mask = list(nrb_d[_maskkey])
+    mask = nrb_d[_maskkey]
+    zsetind_ta = nrb_d[indkey]
     for key, func in _keypad_d.items():
 
-        alen_a = np.array([])
         newa_a = []
         for i, a in enumerate(nrb_d[key]):
-            a = a[mask[i]]
+            m = mask[i]
+            a = a[m]
             q, r = divmod(len(a), rangestep)
             if not r:
                 sliceind = None
             else:
                 sliceind = -r
+
+            # reshaping
             newa = a[:sliceind]
             newa = newa.reshape(q, rangestep)
             newa = func(newa)
 
-            newa_a.append(newa)
-            alen_a = np.append(alen_a, q)
+            # padding
+            zsetind = zsetind_ta[i]
+            print(Nbin_a[zsetind])
+            '''DEBUG HERE'''
+            pad = int(pad_a[zsetind] + oldNbin_a[zsetind] - m.sum())
+            newa = np.append(np.zeros(pad), newa)
 
-        # padding
-        padlen_a = (np.max(alen_a) - alen_a).astype(np.int)
-        newa_a = np.array([
-            np.append(newa, np.zeros(padlen_a[j]))
-            for j, newa in enumerate(newa_a)
-        ])
+            newa_a.append(newa)
 
         nrb_d[key] = np.array(newa_a)
 
@@ -74,20 +91,6 @@ def main(nrb_d, rangestep):
     nrb_d['SNR1_tra'] = nrb_d['NRB1_tra']/nrb_d['delNRB1_tra']
     nrb_d['SNR2_tra'] = nrb_d['NRB2_tra']/nrb_d['delNRB2_tra']
     nrb_d['SNR_tra'] = nrb_d['NRB_tra']/nrb_d['delNRB_tra']
-
-    ## DeltNbintheta_a or DeltNbin_a
-    Delt_a, Nbin_a = list(zip(*nrb_d['DeltNbin_a']))
-    Delt_a = np.array(Delt_a) * rangestep
-    Nbin_a = alen_a
-    nrb_d['DeltNbin_a'] = list(zip(Delt_a, Nbin_a))
-
-    try:
-        Delt_a, Nbin_a, theta_a = list(zip(*nrb_d['DeltNbintheta_a']))
-        Delt_a = np.array(Delt_a) * rangestep
-        Nbin_a = alen_a
-        nrb_d['DeltNbintheta_a'] = list(zip(Delt_a, Nbin_a, theta_a))
-    except KeyError:            # mpl files (no scanning) has no theta component
-        pass
 
     return nrb_d
 

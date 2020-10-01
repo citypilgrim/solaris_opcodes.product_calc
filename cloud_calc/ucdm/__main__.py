@@ -52,12 +52,12 @@ def main(
 
     # retrieving scattering profile
     try:                        # scanning lidar NRB
-        setz_a = nrbdic['DeltNbintheta_a']
-        setzind_ta = nrbdic['DeltNbinthetaind_ta']
+        setz_a = nrbdic['DeltNbinpadtheta_a']
+        setzind_ta = nrbdic['DeltNbinpadthetaind_ta']
         z_tra = nrbdic['z_tra']
     except KeyError:            # static lidar NRB
-        setz_a = nrbdic['DeltNbin_a']
-        setzind_ta = nrbdic['DeltNbinind_ta']
+        setz_a = nrbdic['DeltNbinpad_a']
+        setzind_ta = nrbdic['DeltNbinpadind_ta']
         z_tra = nrbdic['r_tra']
 
     # retreiving molecular profile
@@ -73,6 +73,7 @@ def main(
     ]
 
     # CRprime
+    print(NRB_tra.shape, betamprime_tra.shape)
     CRprime_tra = NRB_tra / betamprime_tra
     delfCRprimes_tra = SNR_tra**-2 + delfbetamprimes_tra
     delCRprime_tra = CRprime_tra * np.sqrt(delfCRprimes_tra)
@@ -146,15 +147,15 @@ def main(
                 )
 
                 # plot thresholding
-                p = ax2.errorbar(
-                    PAB_tra[i][ucdm_rm], z_ra[ucdm_rm],
-                    xerr=delPAB_tra[i][ucdm_rm],
-                    fmt='o', linestyle='-',
-                    label='PAB'
-                )
+                # p = ax2.errorbar(
+                #     PAB_tra[i][ucdm_rm], z_ra[ucdm_rm],
+                #     xerr=delPAB_tra[i][ucdm_rm],
+                #     fmt='o', linestyle='-',
+                #     label='PAB'
+                # )
                 ax2.plot(
                     alpha_tra[i][ucdm_rm], z_ra[ucdm_rm],
-                    color=p[0].get_color(), linestyle='dashdot',
+                    color=p[0].get_color(), linestyle='', marker='o',
                     label='alpha'
                 )
                 ax2.plot(
@@ -203,21 +204,27 @@ def main(
 
 
 
-
 # testing
 if __name__ == '__main__':
     from ...nrb_calc import main as nrb_calc
-    from ....file_readwrite import smmpl_reader
+    from ....file_readwrite import smmpl_reader, mpl_reader
 
     nrb_d = nrb_calc(
         'smmpl_E2', smmpl_reader,
-        # '/home/tianli/SOLAR_EMA_project/data/smmpl_E2/20200307/202003070300.mpl',
-        '/home/tianli/SOLAR_EMA_project/data/smmpl_E2/20200901/202009010500.mpl',
+        '/home/tianli/SOLAR_EMA_project/data/smmpl_E2/20200307/202003070300.mpl',
+        # '/home/tianli/SOLAR_EMA_project/data/smmpl_E2/20200901/202009010500.mpl',
         # '/home/tianli/SOLAR_EMA_project/data/smmpl_E2/20200930/202009300400.mpl',
         # starttime=LOCTIMEFN('202009010000', UTCINFO),
         # endtime=LOCTIMEFN('202009010800', UTCINFO),
-        timestep=0, rangestep=5,
+        timestep=None, rangestep=5,
         genboo=True,
     )
+
+    # nrb_d = nrb_calc(
+    #     'mpl_S2S', mpl_reader,
+    #     '/home/tianli/SOLAR_EMA_project/data/mpl_S2S/20200602/202006020000.mpl',
+    #     timestep=5, rangestep=None,
+    #     genboo=True,
+    # )
 
     main(nrb_d, combpolboo=True, plotboo=True)

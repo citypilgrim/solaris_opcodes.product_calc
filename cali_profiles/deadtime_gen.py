@@ -7,30 +7,24 @@ from ...global_imports.solaris_opcodes import *
 # main func
 @verbose
 @announcer
-def main(Ddir, genboo):
+def main(Ddir):
     '''
     Parameters
-        Ddir (str): genboo=True -> dir of .txt file containg deadtime coeff
-                    genboo=False -> dir of coefficients
-        genboo (boolean): choosing whether or not to generate coeff or read from
-                          file
+        Ddir (str): dir of .txt file containg deadtime coeff
 
     Return
         Dcoeff_a (np.array): array of deadtime fit coefficients
         D_f (func): takes in counts of any shape and out puts corr factor
     '''
-    if genboo:
-        # generating Dtime coefficients
-        with open(Ddir, 'r') as D_file:
-            Dstr = D_file.read()
-        Dstr = Dstr.replace('y = ', '').replace('- ', '-').replace('+ ', '')
-        Dcoeff_l = Dstr.split(' ')[::-1]
-        Dcoeff_a = np.array(list(map(
-            lambda x: float(x[:x.find('x')]) if x.find('x') != -1 else\
-            float(x), Dcoeff_l
-        )))
-    else:
-        Dcoeff_a = np.loadtxt(Ddir)  # ascending coefficients
+    # generating Dtime coefficients
+    with open(Ddir, 'r') as D_file:
+        Dstr = D_file.read()
+    Dstr = Dstr.replace('y = ', '').replace('- ', '-').replace('+ ', '')
+    Dcoeff_l = Dstr.split(' ')[::-1]
+    Dcoeff_a = np.array(list(map(
+        lambda x: float(x[:x.find('x')]) if x.find('x') != -1 else\
+        float(x), Dcoeff_l
+    )))
 
     def D_f(n_ara):
         '''
@@ -61,7 +55,7 @@ if __name__ == '__main__':
     D_dirl = FINDFILESFN(DEADTIMEPROFILE, CALIPROFILESDIR)
     D_dirl.sort(key=osp.getmtime)
     D_dir = D_dirl[-1]
-    Dcoeff_a, D_f = main(D_dir, genboo=True)
+    Dcoeff_a, D_f = main(D_dir)
 
     Dsnstr = DIRPARSEFN(D_dir, fieldsli=DTSNFIELD)
     Dcoeff_fn = DEADTIMEPROFILE.format(Dsnstr, lidarname)

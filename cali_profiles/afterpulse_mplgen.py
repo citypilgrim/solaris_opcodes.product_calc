@@ -221,7 +221,7 @@ if __name__ == '__main__':
     import os.path as osp
     from glob import glob
     import pandas as pd
-    from .deadtime_genread import main as deadtime_genread
+    from .deadtime_gen import main as deadtime_gen
     from ...file_readwrite import mpl_reader, smmpl_reader
 
     # writing to single file
@@ -245,7 +245,7 @@ if __name__ == '__main__':
             DEADTIMEPROFILE, SOLARISMPLCALIDIR.format(lidarname)
         )[0]
 
-        _, D_f = deadtime_genread(D_d, genboo=True)
+        _, D_f = deadtime_genread(D_d)
         napOEr_ra, napOE1_ra, napOE2_ra, delnapOE1s_ra, delnapOE2s_ra =\
             main(mplreader, mpl_d, D_f)
         # interpolating
@@ -278,7 +278,7 @@ if __name__ == '__main__':
         D_d = FINDFILESFN(
             DEADTIMEPROFILE, SOLARISMPLCALIDIR.format(lidarname)
         )[0]
-        _, D_f = deadtime_genread(D_d, genboo=True)
+        _, D_f = deadtime_genread(D_d)
 
         # plotting to test
         fig, (ax3, ax4) = plt.subplots(nrows=2, sharex=True)

@@ -15,12 +15,12 @@ _firstval_l = [
     'Timestamp',
     'r_tra',
     'z_tra', 'theta_ta', 'phi_ta',
-    'DeltNbinind_ta',
-    'DeltNbinthetaind_ta'
+    'DeltNbinpadind_ta',
+    'DeltNbinpadthetaind_ta'
 ]
 _unchanged_l = [
-    'DeltNbin_a',
-    'DeltNbintheta_a',
+    'DeltNbinpad_a',
+    'DeltNbinpadtheta_a',
     'theta_a'
 ]
 _multiplication_l = [

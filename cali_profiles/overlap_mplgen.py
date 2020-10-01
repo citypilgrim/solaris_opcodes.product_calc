@@ -275,7 +275,7 @@ def main(mplreader,
 if __name__ == '__main__':
     # imports
     from glob import glob
-    from .deadtime_genread import main as deadtime_genread
+    from .deadtime_gen import main as deadtime_gen
     from .afterpulse_mplgen import main as afterpulse_mplgen
     from .afterpulse_csvgen import main as afterpulse_csvgen
     from .overlap_csvgen import main as overlap_csvgen
@@ -287,7 +287,7 @@ if __name__ == '__main__':
 
     ## computing deadtime
     D_d = FINDFILESFN(DEADTIMEFILE, SOLARISMPLCALIDIR.format(lidarname))[0]
-    _, D_f = deadtime_genread(D_d, genboo=True)
+    _, D_f = deadtime_genread(D_d)
 
     ## computing afterpulse
     mpl_d = '/home/tianli/SOLAR_EMA_project/data/smmpl_E2/calibration/measured_profiles/201910170400_2e-7_afterpulse.mpl'

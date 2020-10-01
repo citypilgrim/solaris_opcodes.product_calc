@@ -14,9 +14,9 @@ def main(
     return (
         betamprime_tra
         + betamprime_tra * np.sqrt(
-            (
-                delNRB_tra/(betamprime_tra * Cfstar_ta[:, None])
-            )**2
+            # (
+            #     delNRB_tra/(betamprime_tra * Cfstar_ta[:, None])
+            # )**2
             + (delCfstar_ta/Cfstar_ta)[:, None]**2
         )
     )

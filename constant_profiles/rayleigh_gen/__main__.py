@@ -16,7 +16,7 @@ _mollidrat = np.pi*8/3   # molecular lidar ratio
 @verbose
 @announcer
 def main(
-        Delt, Nbin, theta=0,
+        Delt, Nbin, pad, theta=0,
         weather=WEATHER, wavelength=WAVELENGTH
 ):
     '''
@@ -26,10 +26,11 @@ def main(
         - The rayleigh profile and it's uncertainties could be derived from aeronet
 
     Parameters
-        arg_a (array like): contains the floowing
-            Delt (float): bintime
-            Nbin (int): number of bins
-            (optional) theta (float): [rad] lidar to zenith angle
+        Delt (float): bintime
+        Nbin (int): number of bins
+        pad (int): padding of '0's to place at the front of the array to
+                   rectangularise the final output
+        (optional) theta (float): [rad] lidar to zenith angle
         wavelength (float): [nm], wavelength of light used
         weather (str): 'winter' or 'summer'
 
@@ -48,6 +49,7 @@ def main(
     print(f'using profile from :{ray_file}')
     print(f'\tDelt: {Delt}')
     print(f'\tNbin: {Nbin}')
+    print(f'\tpad: {pad}')
     print(f'\ttheta: {theta}')
 
     rayscatdat_nc = nc.Dataset(ray_file, 'r', format='NETNC4_CLASSIC')
@@ -55,8 +57,10 @@ def main(
     betam_ra = rayscatdat_nc.variables[weather+'_ray'][:]
 
     # interpolating
-    Delz = Delt * SPEEDOFLIGHT * np.cos(theta)
-    z_ra = Delz * np.arange(Nbin)
+    Nbin = int(Nbin)
+    pad = int(pad)
+    Delr = SPEEDOFLIGHT * Delt
+    z_ra = np.append(np.zeros(pad), Delr * np.arange(Nbin))
     betam_ra = np.interp(z_ra, ncr_ra, betam_ra)
 
     # computing back scatter
@@ -85,8 +89,15 @@ def main(
 
 # generating
 if __name__ == '__main__':
-    Delt = 1e-7
-    Nbin = 1200
+    import matplotlib.pyplot as plt
+
+    Delt = 2.5e-7
+    Nbin = 798
     Delr = Delt * SPEEDOFLIGHT
-    r_ra = Delr * np.arange(Nbin) + Delr/2
-    betam_ra, T2m_ra = main(True, Delt, Nbin)
+    r_ra = Delr * np.arange(Nbin)
+    betam_ra, T2m_ra, betamprime_ra, \
+        delbetam_ra, delT2m_ra, delbetamprime_ra = main(Delt, Nbin, 0)
+
+    plt.plot(betamprime_ra, r_ra)
+    plt.ylim([0, 20])
+    plt.show()

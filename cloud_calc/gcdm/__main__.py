@@ -64,12 +64,12 @@ def main(
 
     # retrieving scattering profile
     try:                        # scanning lidar NRB
-        setz_a = nrbdic['DeltNbintheta_a']
-        setzind_ta = nrbdic['DeltNbinthetaind_ta']
+        setz_a = nrbdic['DeltNbinpadtheta_a']
+        setzind_ta = nrbdic['DeltNbinpadthetaind_ta']
         z_tra = nrbdic['z_tra']
     except KeyError:            # vertical lidar NRB
-        setz_a = nrbdic['DeltNbin_a']
-        setzind_ta = nrbdic['DeltNbinind_ta']
+        setz_a = nrbdic['DeltNbinpad_a']
+        setzind_ta = nrbdic['DeltNbinpadind_ta']
         z_tra = nrbdic['r_tra']
 
     # retreiving molecular profile
