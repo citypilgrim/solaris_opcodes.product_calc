@@ -79,7 +79,7 @@ def main(
     rayleigh_tara = np.array([
         rayleigh_aara[setzind] for setzind in setzind_ta
     ])
-    _, _, betamprime_tra, _, _, _ = [
+    _, _, betamprime_tra, _ = [
         tra[0]
         for tra in np.hsplit(rayleigh_tara, rayleigh_tara.shape[1])
     ]

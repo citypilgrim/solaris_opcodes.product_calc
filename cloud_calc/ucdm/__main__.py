@@ -67,13 +67,12 @@ def main(
     rayleigh_tara = np.array([
         rayleigh_aara[setzind] for setzind in setzind_ta
     ])
-    _, _, betamprime_tra, _, _, delfbetamprimes_tra = [
+    _, _, betamprime_tra, delfbetamprimes_tra = [
         tra[:, 0, :]
         for tra in np.hsplit(rayleigh_tara, rayleigh_tara.shape[1])
     ]
 
     # CRprime
-    print(NRB_tra.shape, betamprime_tra.shape)
     CRprime_tra = NRB_tra / betamprime_tra
     delfCRprimes_tra = SNR_tra**-2 + delfbetamprimes_tra
     delCRprime_tra = CRprime_tra * np.sqrt(delfCRprimes_tra)
@@ -124,7 +123,7 @@ def main(
 
         for i, z_ra in enumerate(z_tra):
             # if i in range(a:=0, a+10):
-            if i == 9:
+            if i == 25:
                 r_rm = r_trm[i]
                 ucdm_rm = ucdm_trm[i]
                 baselayerheight_rm = baselayerheight_trm[i]
@@ -201,9 +200,6 @@ def main(
         plt.show()
 
 
-
-
-
 # testing
 if __name__ == '__main__':
     from ...nrb_calc import main as nrb_calc
@@ -211,9 +207,10 @@ if __name__ == '__main__':
 
     nrb_d = nrb_calc(
         'smmpl_E2', smmpl_reader,
-        '/home/tianli/SOLAR_EMA_project/data/smmpl_E2/20200307/202003070300.mpl',
+        # '/home/tianli/SOLAR_EMA_project/data/smmpl_E2/20200307/202003070300.mpl',
         # '/home/tianli/SOLAR_EMA_project/data/smmpl_E2/20200901/202009010500.mpl',
         # '/home/tianli/SOLAR_EMA_project/data/smmpl_E2/20200930/202009300400.mpl',
+        '/home/tianli/SOLAR_EMA_project/data/smmpl_E2/20200805/202008050003.mpl',
         # starttime=LOCTIMEFN('202009010000', UTCINFO),
         # endtime=LOCTIMEFN('202009010800', UTCINFO),
         timestep=None, rangestep=5,

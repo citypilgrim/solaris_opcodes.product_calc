@@ -46,20 +46,22 @@ if __name__ == '__main__':
     import matplotlib.pyplot as plt
     from ...global_imports.solaris_opcodes import *
 
-    smmpl_boo = True
-    if smmpl_boo:
-        lidarname, mpl_d = 'smmpl_E2', '/home/tianli/SOLAR_EMA_project/data/smmpl_E2/calibration/SPCM37060deadtime.txt'
-    else:
-        lidarname, mpl_d = 'mpl_S2S', '/home/tianli/SOLAR_EMA_project/data/mpl_S2S/calibration/SPCM26086deadtime.txt'
+    writefile_boo = False
+    if writefile_boo:
+        smmpl_boo = True
+        if smmpl_boo:
+            lidarname, mpl_d = 'smmpl_E2', '/home/tianli/SOLAR_EMA_project/data/smmpl_E2/calibration/SPCM37060deadtime.txt'
+        else:
+            lidarname, mpl_d = 'mpl_S2S', '/home/tianli/SOLAR_EMA_project/data/mpl_S2S/calibration/SPCM26086deadtime.txt'
 
-    D_dirl = FINDFILESFN(DEADTIMEPROFILE, CALIPROFILESDIR)
-    D_dirl.sort(key=osp.getmtime)
-    D_dir = D_dirl[-1]
-    Dcoeff_a, D_f = main(D_dir)
+        D_dirl = FINDFILESFN(DEADTIMEPROFILE, CALIPROFILESDIR)
+        D_dirl.sort(key=osp.getmtime)
+        D_dir = D_dirl[-1]
+        Dcoeff_a, D_f = main(D_dir)
 
-    Dsnstr = DIRPARSEFN(D_dir, fieldsli=DTSNFIELD)
-    Dcoeff_fn = DEADTIMEPROFILE.format(Dsnstr, lidarname)
-    np.savetxt(
-        DIRCONFN(CALIPROFILESDIR, Dcoeff_fn),
-        Dcoeff_a, fmt='%{}.{}e'.format(1, CALIWRITESIGFIG-1)
-    )
+        Dsnstr = DIRPARSEFN(D_dir, fieldsli=DTSNFIELD)
+        Dcoeff_fn = DEADTIMEPROFILE.format(Dsnstr, lidarname)
+        np.savetxt(
+            DIRCONFN(CALIPROFILESDIR, Dcoeff_fn),
+            Dcoeff_a, fmt='%{}.{}e'.format(1, CALIWRITESIGFIG-1)
+        )

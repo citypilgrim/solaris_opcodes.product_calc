@@ -32,27 +32,24 @@ def main(nrb_d, rangestep):
     '''
     Does not change the padding of the arrays
     '''
+    # mask
+    mask = nrb_d[_maskkey]
+    Nbin_a = (mask.sum(axis=-1)/rangestep).astype(np.int)
+    pad_a = Nbin_a.max() - Nbin_a
+
     # DeltNbinpadtheta_a or DeltNbinpad_a
     try:
-        Delt_a, Nbin_a, pad_a, theta_a = list(zip(*nrb_d['DeltNbinpadtheta_a']))
+        Delt_a, _, _, theta_a = list(zip(*nrb_d['DeltNbinpadtheta_a']))
         Delt_a = np.array(Delt_a) * rangestep
-        oldNbin_a = Nbin_a
-        Nbin_a = np.array(Nbin_a, dtype=np.int)/rangestep
-        pad_a = np.array(pad_a, dtype=np.int)
         nrb_d['DeltNbinpadtheta_a'] = list(zip(Delt_a, Nbin_a, pad_a, theta_a))
         indkey = 'DeltNbinpadthetaind_ta'
     except KeyError:            # mpl files (no scanning) has no theta component
-        Delt_a, Nbin_a, pad_a = list(zip(*nrb_d['DeltNbinpad_a']))
+        Delt_a, _, _ = list(zip(*nrb_d['DeltNbinpad_a']))
         Delt_a = np.array(Delt_a) * rangestep
-        oldNbin_a = Nbin_a
-        Nbin_a = np.array(Nbin_a, dtype=np.int)/rangestep
-        pad_a = np.array(pad_a, dtype=np.int)
         nrb_d['DeltNbinpad_a'] = list(zip(Delt_a, Nbin_a, pad_a))
         indkey = 'DeltNbinpadind_ta'
 
-
     # performing reshaping operation
-    mask = nrb_d[_maskkey]
     zsetind_ta = nrb_d[indkey]
     for key, func in _keypad_d.items():
 
@@ -72,11 +69,10 @@ def main(nrb_d, rangestep):
             newa = func(newa)
 
             # padding
-            zsetind = zsetind_ta[i]
-            print(Nbin_a[zsetind])
-            '''DEBUG HERE'''
-            pad = int(pad_a[zsetind] + oldNbin_a[zsetind] - m.sum())
-            newa = np.append(np.zeros(pad), newa)
+            newa = np.append(
+                np.zeros(pad_a[zsetind_ta[i]]),
+                newa
+            )
 
             newa_a.append(newa)
 

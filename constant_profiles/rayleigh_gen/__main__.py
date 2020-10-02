@@ -39,9 +39,8 @@ def main(
         T2m_ra (np.array): molecular transmission squared w.r.t altitude
         betamprime_ra (np.array): attenuated molecular back scattering w.r.t
                                   altitude
-        delfbetams_ra (np.array): fractional uncertainty of betam_ra squared
-        delfT2ms_ra (np.array): fractional uncertainty of T2m_ra squared
-        delfbetamprimes_ra (np.array): fractional uncertainty of T2m_ra squared
+        delfbetamprimes_ra (np.array): fractional uncertainty of att backscatter
+                                       squared
     '''
     # reading scattering coefficient file
     ray_file = DIRCONFN(osp.dirname(osp.abspath(__file__)),
@@ -74,15 +73,12 @@ def main(
     betamprime_ra = betam_ra * Tm2_ra
 
     # computing uncertainties
-    ra = np.ones_like(betam_ra)
-    delfbetams_ra = (RAYLEIGHMOLUNC**2) * ra
-    delfTm2s_ra = 2*(RAYLEIGHAOTUNC**2) * ra
-    delfbetamprimes_ra = ((RAYLEIGHMOLUNC ** 2) + 2*(RAYLEIGHAOTUNC ** 2)) * ra
+    delfbetamprimes_ra = (RAYLEIGHATTUNCERT**2) * np.ones_like(betam_ra)
 
     # returning
     ret_l = [
         betam_ra, Tm2_ra, betamprime_ra,
-        delfbetams_ra, delfTm2s_ra, delfbetamprimes_ra
+        delfbetamprimes_ra
     ]
     return ret_l
 

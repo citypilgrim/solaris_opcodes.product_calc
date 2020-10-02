@@ -110,6 +110,7 @@ def main(
         delnb2s_ta = mpl_d['Background Std Dev 2']**2
 
         ## updating mask
+        BLINDRANGE = 0
         r_trm = n_trm * (
             np.arange(r_tra.shape[1])
             >= (np.argmax(r_tra > BLINDRANGE, axis=1)[:, None])
@@ -134,9 +135,12 @@ def main(
                      Oc_raa, delOcs_raa]
         D_func = D_funca[0]    # D_func's are all the same for the same lidar
         ## indexing calculated files
-        DeltNbinpad_d = {DeltNbinpad: i for i, DeltNbinpad in enumerate(DeltNbinpad_a)}
-        DeltNbinpadind_ta = np.array(list(map(lambda x: DeltNbinpad_d[x],
-                                           DeltNbinpad_ta)))
+        DeltNbinpad_d = {DeltNbinpad: i
+                         for i, DeltNbinpad in enumerate(DeltNbinpad_a)}
+        DeltNbinpadind_ta = np.array(
+            list(map(lambda x: DeltNbinpad_d[x], DeltNbinpad_ta)),
+            dtype=np.int
+        )
         napOE1_tra, napOE2_tra, delnapOE1s_tra, delnapOE2s_tra,\
             Oc_tra, delOcs_tra = [
                 np.array(list(map(lambda x: raa[x],  DeltNbinpadind_ta)))
@@ -146,7 +150,6 @@ def main(
         # change dtype of channels to cope for D_func calculation
         n1_tra = n1_tra.astype(np.float64)
         n2_tra = n2_tra.astype(np.float64)
-
 
         # pre calc derived quantities
         P1_tra = n1_tra * D_func(n1_tra)
@@ -163,7 +166,6 @@ def main(
 
 
         # compute NRB
-        print(napOE1_tra.shape, P1_tra.shape)
         NRB1_tra = (
             (P1_tra - nb1_ta[:, None]) / E_ta[:, None]
             - napOE1_tra
@@ -340,7 +342,7 @@ if __name__ == '__main__':
     fig, (ax, ax1, ax2) = plt.subplots(nrows=3, sharex=True)
 
     print('plotting the following timestamps:')
-    for i in range(a := 0, a + 1):
+    for i in range(a := 11, a + 1):
         print(f'\t {ts_ta[i]}')
 
         # plotting computed data
@@ -361,8 +363,8 @@ if __name__ == '__main__':
         ax.plot(sigmar_ra, sigmaNRB_tra[i], color='k')
 
 
-    # ax.set_yscale('log')
-    # ax1.set_yscale('log')
+    ax.set_yscale('log')
+    ax1.set_yscale('log')
     # ax1.set_ylim([0, NOISEALTITUDE])
     plt.xlim([0, 15])
     plt.show()
