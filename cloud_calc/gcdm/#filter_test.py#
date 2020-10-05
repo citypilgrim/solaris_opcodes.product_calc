@@ -138,7 +138,7 @@ def main(
 
 
         # peak functions usage
-
+        peaks, properties = sig.find_peaks()
 
 
         # # first derivative
