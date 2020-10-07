@@ -91,9 +91,10 @@ if __name__ == '__main__':
     Nbin = 798
     Delr = Delt * SPEEDOFLIGHT
     r_ra = Delr * np.arange(Nbin)
-    betam_ra, T2m_ra, betamprime_ra, \
-        delbetam_ra, delT2m_ra, delbetamprime_ra = main(Delt, Nbin, 0)
+    betam_ra, Tm2_ra, betamprime_ra, delbetamprime_ra = main(Delt, Nbin, 0)
 
-    plt.plot(betamprime_ra, r_ra)
-    plt.ylim([0, 20])
+    plt.plot(betamprime_ra, r_ra, 'bx')
+    plt.plot(betam_ra, r_ra)
+    # plt.plot(Tm2_ra, r_ra, 'ro')
+    # plt.ylim([0, 20])
     plt.show()

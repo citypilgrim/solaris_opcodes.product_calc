@@ -33,7 +33,11 @@ def main(
 
     # finding cloud bases
     amaxcross_rm = (dzCRprime_ra >= amax)
-    start_boo = amaxcross_rm[0]
+    try:
+        start_boo = amaxcross_rm[0]
+    except IndexError:          # no clouds found
+        return []
+
     absdiff_a = np.abs(np.diff(amaxcross_rm, axis=-1))
     cloudbotind_a = np.argwhere(absdiff_a)[:, 0] + 1
     if start_boo:

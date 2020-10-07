@@ -110,7 +110,6 @@ def main(
         delnb2s_ta = mpl_d['Background Std Dev 2']**2
 
         ## updating mask
-        BLINDRANGE = 0
         r_trm = n_trm * (
             np.arange(r_tra.shape[1])
             >= (np.argmax(r_tra > BLINDRANGE, axis=1)[:, None])
@@ -176,7 +175,6 @@ def main(
         ) / Oc_tra * (r_tra**2)
         NRB_tra = NRB1_tra + NRB2_tra
 
-
         # compute delNRB
         delNRB1_tra = np.sqrt(
             (delP1s_tra + delnb1s_ta[:, None] + delnap1s_tra)
@@ -201,6 +199,14 @@ def main(
             + DELEOVERE**2
             + delOcs_tra/(Oc_tra**2)
         )
+
+        # handling nan values
+        NRB1_tra = np.nan_to_num(NRB1_tra)
+        NRB2_tra = np.nan_to_num(NRB2_tra)
+        NRB_tra = np.nan_to_num(NRB_tra)
+        delNRB1_tra = np.nan_to_num(delNRB1_tra)
+        delNRB2_tra = np.nan_to_num(delNRB2_tra)
+        delNRB_tra = np.nan_to_num(delNRB_tra)
 
         # handling altitude
         try:

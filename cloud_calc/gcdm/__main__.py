@@ -80,13 +80,16 @@ def main(
         rayleigh_aara[setzind] for setzind in setzind_ta
     ])
     _, _, betamprime_tra, _ = [
-        tra[0]
+        tra[:, 0, :]
         for tra in np.hsplit(rayleigh_tara, rayleigh_tara.shape[1])
     ]
 
     # computing gcdm mask
     gcdm_trm = np.arange(r_trm.shape[1])\
-        < (np.argmax((SNR_tra <= NOISEALTITUDE) * r_trm, axis=1)[:, None])
+        <= np.array([
+            np.argmax(SNR_tra[i][r_rm] <= NOISEALTITUDE) + np.argmax(r_rm)
+            for i, r_rm in enumerate(r_trm)
+        ])[:, None]
     gcdm_trm *= r_trm
 
     # computing first derivative
@@ -119,6 +122,8 @@ def main(
         yupperlim = z_tra.max()
 
         for i, z_ra in enumerate(z_tra):
+            if i != 935:
+                continue
 
             # indexing commonly used arrays
             gcdm_rm = gcdm_trm[i]
@@ -174,11 +179,27 @@ if __name__ == '__main__':
     from ...nrb_calc import main as nrb_calc
     from ....file_readwrite import smmpl_reader
 
+    '''
+    Good profiles to observe
+
+    20200922
+
+    139
+    183
+    189
+    269
+    309
+    380
+    416
+    944
+    1032
+    '''
+
     nrb_d = nrb_calc(
         'smmpl_E2', smmpl_reader,
-        '/home/tianli/SOLAR_EMA_project/data/smmpl_E2/20200901/202009010500.mpl',
-        # starttime=LOCTIMEFN('202009010000', UTCINFO),
-        # endtime=LOCTIMEFN('202009010800', UTCINFO),
+        # '/home/tianli/SOLAR_EMA_project/data/smmpl_E2/20200805/202008050003.mpl',
+        starttime=LOCTIMEFN('202009220000', UTCINFO),
+        endtime=LOCTIMEFN('202009230000', UTCINFO),
         genboo=True,
     )
 

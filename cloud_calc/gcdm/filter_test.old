@@ -3,6 +3,9 @@ import multiprocessing as mp
 
 import matplotlib.pyplot as plt
 import numpy as np
+import scipy.fftpack as sfft
+import scipy.interpolate as sinp
+import scipy.integrate as sint
 import scipy.signal as sig
 
 from .gcdm_algo import main as gcdm_algo
@@ -60,7 +63,7 @@ def main(
     rayleigh_tara = np.array([
         rayleigh_aara[setzind] for setzind in setzind_ta
     ])
-    _, _, betamprime_tra, _, _, _ = [
+    _, _, betamprime_tra, _ = [
         tra[0]
         for tra in np.hsplit(rayleigh_tara, rayleigh_tara.shape[1])
     ]
@@ -71,49 +74,115 @@ def main(
     # gcdm_trm *= r_trm
     gcdm_trm = r_trm * z_tra <= 20
 
-    # filtering
+    # working array
     CRprime_tra = NRB_tra / betamprime_tra
 
-    ## filters and their params
-    def nsavgol_filter(x, window, poly, times):
-        ret = x
-        for time in range(times):
-            ret = sig.savgol_filter(ret, window, poly)
-        return ret
+    # developing filter
+    fig, ax = plt.subplots(ncols=2, sharey=True)
 
-    def custom_filter(x, *args):
-        ret = nsavgol_filter(*args[0:3])
+    '''
+    Good profiles to observe
 
-        return ret
+    20200922
 
-    filt_d = {
-        (lambda x: x): [],
-        nsavgol_filter: [51, 2, 1],  # window size, polynomial
-    }
+    136
+    269                         # very low cloud has to be handled with GCDM
+    309
+    380
+    416
+    944
+    1032
+    '''
+    for j in range(a := 306, a + 1):
 
-    # plotting
-    fig, axs = plt.subplots(ncols=len(filt_d), sharey=True)
-
-    for j in range(a := 25, a + 10):
+        # original
         sampleind = j
-        sample_ra = CRprime_tra[sampleind][gcdm_trm[sampleind]]
+        # sample_ra = CRprime_tra[sampleind][gcdm_trm[sampleind]]
+        sample_ra = NRB_tra[sampleind][gcdm_trm[sampleind]]
         samplez_ra = z_tra[sampleind][gcdm_trm[sampleind]]
 
-        # removing invalid points
-        boo_ra = sample_ra > 0
-        sample_ra = sample_ra[boo_ra]
-        samplez_ra = samplez_ra[boo_ra]
 
-        for i, filt in enumerate(filt_d):
-            axs[i].plot(
-                filt(sample_ra, *filt_d[filt]),
-                samplez_ra,
-                label=filt.__name__
-            )
+        # handling invalid values
+        # sample_ra[sample_ra < 0] = 0
+        sample_ra = np.nan_to_num(sample_ra)
 
-            axs[i].legend()
+        ax[0].plot(
+            sample_ra, samplez_ra,
+            label='original, rejected'
+        )
 
-            axs[i].set_xscale('log')
+
+        # low pass filter
+        T = 0.015               # [km]
+        fs = 1/T                # sample rate, [km^-1]
+        cutoff = 5             # [km^-1]
+        nyq = 0.5 * fs          # Nyquist Frequency
+        order = 2
+        lowpass1_ra = sample_ra
+        b, a = sig.butter(order, cutoff/nyq, btype='low', analog=False)
+        lowpass1_ra = sig.filtfilt(b, a, lowpass1_ra)
+        p1 = ax[0].plot(lowpass1_ra, samplez_ra,
+                        label='low pass')
+
+
+        # savgol_filter
+        times = 1
+        window = 51
+        poly = 2
+        savgol_ra = lowpass1_ra
+        for time in range(times):
+            savgol_ra = sig.savgol_filter(savgol_ra, window, poly)
+        p2 = ax[0].plot(savgol_ra, samplez_ra,
+                        label='savgol')
+
+        # low pass filter
+        T = 0.015               # [km]
+        fs = 1/T                # sample rate, [km^-1]
+        cutoff = 1              # [km^-1]
+        nyq = 0.5 * fs          # Nyquist Frequency
+        order = 2
+        lowpass2_ra = savgol_ra
+        b, a = sig.butter(order, cutoff/nyq, btype='low', analog=False)
+        lowpass2_ra = sig.filtfilt(b, a, lowpass2_ra)
+        p3 = ax[0].plot(lowpass2_ra, samplez_ra,
+                        label='low pass')
+
+        ax[0].legend()
+
+
+        # peak functions usage
+        # peaks, properties = sig.find_peaks()
+
+
+        # first derivative
+        T = 0.015
+        sampledz_ra = lowpass2_ra
+        sampledz_ra = np.diff(sampledz_ra) / T
+        sampledzz_ra = T/2 + samplez_ra[:-1]
+        sampledz_ra = sinp.interp1d(               # returns a function
+            sampledzz_ra, sampledz_ra,
+            kind='quadratic', fill_value='extrapolate'
+        )(samplez_ra)
+        ax[1].plot(
+            sampledz_ra, samplez_ra, color=p3[0].get_color()
+        )
+
+
+        # # inspecting frequency spectrum of savgol
+        # fig, ax = plt.subplots()
+        # N = len(sample_ra)
+        # # sample spacing
+        # T = np.diff(samplez_ra)[0]
+        # xf = np.linspace(0.0, 1.0/(2.0*T), N//2)
+
+        # yf = sfft.fft(savgol_ra)
+        # ax.plot(xf, 2.0/N * np.abs(yf[:N//2]))
+
+        # yf = sfft.fft(lowpass_ra)
+        # ax.plot(xf, 2.0/N * np.abs(yf[:N//2]))
+
+        # ax.set_yscale('log')
+
 
     plt.show()
 
@@ -138,11 +207,27 @@ if __name__ == '__main__':
     from ...nrb_calc import main as nrb_calc
     from ....file_readwrite import smmpl_reader
 
+    '''
+    Good profiles to observe
+
+    20200922
+
+    139
+    183
+    189
+    269
+    309
+    380
+    416
+    944
+    1032
+    '''
+
     nrb_d = nrb_calc(
         'smmpl_E2', smmpl_reader,
-        '/home/tianli/SOLAR_EMA_project/data/smmpl_E2/20200805/202008050003.mpl',
-        # starttime=LOCTIMEFN('202009010000', UTCINFO),
-        # endtime=LOCTIMEFN('202009010800', UTCINFO),
+        # '/home/tianli/SOLAR_EMA_project/data/smmpl_E2/20200805/202008050003.mpl',
+        starttime=LOCTIMEFN('202009220000', UTCINFO),
+        endtime=LOCTIMEFN('202009230000', UTCINFO),
         genboo=True,
     )
 

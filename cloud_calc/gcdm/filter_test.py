@@ -64,7 +64,7 @@ def main(
         rayleigh_aara[setzind] for setzind in setzind_ta
     ])
     _, _, betamprime_tra, _ = [
-        tra[0]
+        tra[:, 0, :]
         for tra in np.hsplit(rayleigh_tara, rayleigh_tara.shape[1])
     ]
 
@@ -72,7 +72,8 @@ def main(
     # gcdm_trm = np.arange(r_trm.shape[1])\
     #     < (np.argmax((SNR_tra <= NOISEALTITUDE) * r_trm, axis=1)[:, None])
     # gcdm_trm *= r_trm
-    gcdm_trm = r_trm * z_tra <= 20
+    # gcdm_trm = r_trm * z_tra <= 20
+    gcdm_trm = r_trm
 
     # working array
     CRprime_tra = NRB_tra / betamprime_tra
@@ -80,12 +81,29 @@ def main(
     # developing filter
     fig, ax = plt.subplots(ncols=2, sharey=True)
 
-    for j in range(a := 1, a + 1):
+    '''
+    Good profiles to observe
+
+    20200922
+
+    136
+    269                         # very low cloud has to be handled with GCDM
+    306
+    375                         # double peaks
+    423                         # double peak
+    935                         # very sharp peak at low height, cannot see
+    1030                        # noisy peak
+    '''
+    ts_ta = nrbdic['Timestamp']
+
+    for j in range(a := 935, a + 1):
 
         # original
         sampleind = j
+        print(ts_ta[j])
         # sample_ra = CRprime_tra[sampleind][gcdm_trm[sampleind]]
-        sample_ra = NRB_tra[sampleind][gcdm_trm[sampleind]]
+        # sample_ra = NRB_tra[sampleind][gcdm_trm[sampleind]]
+        sample_ra = SNR_tra[sampleind][gcdm_trm[sampleind]]
         samplez_ra = z_tra[sampleind][gcdm_trm[sampleind]]
 
 
@@ -96,6 +114,14 @@ def main(
         ax[0].plot(
             sample_ra, samplez_ra,
             label='original, rejected'
+        )
+
+        # plotting moving average
+        window = 51
+        movavg_ra = np.convolve(sample_ra, np.ones(window), mode='same')/window
+        ax[0].plot(
+            movavg_ra, samplez_ra,
+            label='moving average'
         )
 
 
@@ -137,22 +163,40 @@ def main(
         ax[0].legend()
 
 
-        # peak functions usage
+        # first derivative
+        T = 0.015
+        sampledz_ra = savgol_ra
+        sampledz_ra = np.diff(sampledz_ra) / T
+        sampledzz_ra = T/2 + samplez_ra[:-1]
+        sampledz_ra = sinp.interp1d(               # returns a function
+            sampledzz_ra, sampledz_ra,
+            kind='quadratic', fill_value='extrapolate'
+        )(samplez_ra)
+        ax[1].plot(
+            sampledz_ra, samplez_ra, color=p2[0].get_color()
+        )
+
+        T = 0.015
+        sampledz_ra = lowpass2_ra
+        sampledz_ra = np.diff(sampledz_ra) / T
+        sampledzz_ra = T/2 + samplez_ra[:-1]
+        sampledz_ra = sinp.interp1d(               # returns a function
+            sampledzz_ra, sampledz_ra,
+            kind='quadratic', fill_value='extrapolate'
+        )(samplez_ra)
+        ax[1].plot(
+            sampledz_ra, samplez_ra, color=p3[0].get_color()
+        )
 
 
+        # trying gcdm thresholds
+        bar = sampledz_ra
+        bar = bar.mean()
+        barmax = KEMPIRICAL * bar
+        barmin = (1 - KEMPIRICAL) * bar
 
-        # # first derivative
-        # T = 0.015
-        # sampledz_ra = lowpass2_ra
-        # sampledz_ra = np.diff(sampledz_ra) / T
-        # sampledzz_ra = T/2 + samplez_ra[:-1]
-        # sampledz_ra = sinp.interp1d(               # returns a function
-        #     sampledzz_ra, sampledz_ra,
-        #     kind='quadratic', fill_value='extrapolate'
-        # )(samplez_ra)
-        # ax[1].plot(
-        #     sampledz_ra, samplez_ra, color=p3[0].get_color()
-        # )
+        ax[1].vlines([barmax, barmin], *ax[1].get_ylim(), color='k')
+
 
 
         # # inspecting frequency spectrum of savgol
@@ -194,11 +238,27 @@ if __name__ == '__main__':
     from ...nrb_calc import main as nrb_calc
     from ....file_readwrite import smmpl_reader
 
+    '''
+    Good profiles to observe
+
+    20200922
+
+    139
+    183
+    189
+    269
+    309
+    380
+    416
+    944
+    1032
+    '''
+
     nrb_d = nrb_calc(
         'smmpl_E2', smmpl_reader,
-        '/home/tianli/SOLAR_EMA_project/data/smmpl_E2/20200805/202008050003.mpl',
-        # starttime=LOCTIMEFN('202009010000', UTCINFO),
-        # endtime=LOCTIMEFN('202009010800', UTCINFO),
+        # '/home/tianli/SOLAR_EMA_project/data/smmpl_E2/20200805/202008050003.mpl',
+        starttime=LOCTIMEFN('202009220000', UTCINFO),
+        endtime=LOCTIMEFN('202009230000', UTCINFO),
         genboo=True,
     )
 
