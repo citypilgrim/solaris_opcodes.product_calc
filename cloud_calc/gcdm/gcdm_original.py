@@ -1,10 +1,11 @@
 # imports
+import multiprocessing as mp
+
 import matplotlib.pyplot as plt
 import numpy as np
 
-from .gcdm_extended import main as gcdm_extended
-from .gcdm_original import main as gcdm_original
-from ...constant_profiles import rayleigh_gen
+from .gcdm_algo import main as gcdm_algo
+from .gradient_calc import main as gradient_calc
 from ....global_imports.solaris_opcodes import *
 
 
@@ -25,12 +26,16 @@ _cloudmarker_l = [
     "d",
 ]
 
+_pool = mp.Pool(processes=GCDMPROCNUM)
+
 
 # main func
 @verbose
 @announcer
 def main(
-        nrbdic,
+        r_trm, z_tra, setz_a, setzind_ta,
+        SNR_tra, NRB_tra,
+        betamprime_tra,
         combpolboo=True,
         plotboo=False,
 ):
@@ -41,48 +46,49 @@ def main(
     Scattering profile is kept in .constant_profiles
 
     Parameters
-        nrbdic (dict): output from .nrb_calc.py
+        r_trm (np.ndarray): range mask
+        z_tra (np.ndarray): altitude array
+        setz_a (list): set of zipped descriptors for the different types of
+                       altitude arrays in z_tra
+        setzind_ta (np.ndarray): index of setz_a for the corresponding time axis
+                                 in all 'tra' arrays
+        SNR_tra (np.ndarray): Signal to noise
+        NRB_tra (np.ndarray): normalised back scatter
+        betamprime_tra (np.ndarray): attenuated backscatter for molecular profile
         combpolboo (boolean): gcdm on combined polarizations or just co pol
         plotboo (boolean): whether or not to plot computed results
     '''
-    # reading data
-    if combpolboo:
-        NRB_tra = nrbdic['NRB_tra']
-        SNR_tra = nrbdic['SNR_tra']
-    else:
-        NRB_tra = nrbdic['NRB2_tra']  # co-pol
-        SNR_tra = nrbdic['SNR2_tra']
-    r_trm = nrbdic['r_trm']
 
-    # retrieving scattering profile
-    try:                        # scanning lidar NRB
-        setz_a = nrbdic['DeltNbinpadtheta_a']
-        setzind_ta = nrbdic['DeltNbinpadthetaind_ta']
-        z_tra = nrbdic['z_tra']
-    except KeyError:            # vertical lidar NRB
-        setz_a = nrbdic['DeltNbinpad_a']
-        setzind_ta = nrbdic['DeltNbinpadind_ta']
-        z_tra = nrbdic['r_tra']
+    # computing gcdm mask
+    gcdm_trm = np.arange(r_trm.shape[1])\
+        <= np.array([
+            np.argmax(SNR_tra[i][r_rm] <= NOISEALTITUDE) + np.argmax(r_rm)
+            for i, r_rm in enumerate(r_trm)
+        ])[:, None]
+    gcdm_trm *= r_trm
 
-    # retreiving molecular profile
-    rayleigh_aara = np.array([
-        rayleigh_gen(*setz) for setz in setz_a
+    # computing first derivative
+    CRprime_tra = NRB_tra / betamprime_tra
+    dzCRprime_tra = gradient_calc(CRprime_tra, z_tra, setz_a, setzind_ta)
+
+    # Computing threshold
+    CRprime0_tra = np.copy(CRprime_tra).flatten()
+    CRprime0_tra[~(gcdm_trm.flatten())] = np.nan  # set nan to ignore in average
+    CRprime0_tra = CRprime0_tra.reshape(*(gcdm_trm.shape))
+    barCRprime0_ta = np.nanmean(CRprime0_tra, axis=1)
+    amax_ta = KEMPIRICAL * barCRprime0_ta
+    amin_ta = (1 - KEMPIRICAL) * barCRprime0_ta
+
+    # finding clouds; applying algorithm on each axis
+    gcdm_ta = np.array([
+        _pool.apply(
+            gcdm_algo,
+            args=(dzCRprime_ra, gcdm_trm[i], amin_ta[i], amax_ta[i])
+        )
+        for i, dzCRprime_ra in enumerate(dzCRprime_tra)
     ])
-    rayleigh_tara = np.array([
-        rayleigh_aara[setzind] for setzind in setzind_ta
-    ])
-    _, _, betamprime_tra, _ = [
-        tra[:, 0, :]
-        for tra in np.hsplit(rayleigh_tara, rayleigh_tara.shape[1])
-    ]
-
-
-    # getting products from original GCDM
-
-    # getting products from extended GCDM
-
-    # combining both products
-
+    _pool.close()
+    _pool.join()
 
 
     # plot feature

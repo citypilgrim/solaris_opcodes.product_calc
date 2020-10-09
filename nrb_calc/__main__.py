@@ -112,7 +112,9 @@ def main(
         ## updating mask
         r_trm = n_trm * (
             np.arange(r_tra.shape[1])
-            >= (np.argmax(r_tra > BLINDRANGE, axis=1)[:, None])
+            >= (np.argmax(
+                (r_tra > BOTTOMBLINDRANGE) * (r_tra < TOPBLINDRANGE),
+                axis=1)[:, None])
         )
 
 
@@ -150,6 +152,9 @@ def main(
         n1_tra = n1_tra.astype(np.float64)
         n2_tra = n2_tra.astype(np.float64)
 
+        nb1P1_ta = nb1_ta * D_func(nb1_ta)
+        nb2P2_ta = nb2_ta * D_func(nb2_ta)
+
         # pre calc derived quantities
         P1_tra = n1_tra * D_func(n1_tra)
         P2_tra = n2_tra * D_func(n2_tra)
@@ -166,11 +171,11 @@ def main(
 
         # compute NRB
         NRB1_tra = (
-            (P1_tra - nb1_ta[:, None]) / E_ta[:, None]
+            (P1_tra - nb1P1_ta[:, None]) / E_ta[:, None]
             - napOE1_tra
         ) / Oc_tra * (r_tra**2)
         NRB2_tra = (
-            (P2_tra - nb2_ta[:, None]) / E_ta[:, None]
+            (P2_tra - nb2P2_ta[:, None]) / E_ta[:, None]
             - napOE2_tra
         ) / Oc_tra * (r_tra**2)
         NRB_tra = NRB1_tra + NRB2_tra
@@ -260,6 +265,8 @@ def main(
             'delNRB1_tra': delNRB1_tra,
             'delNRB2_tra': delNRB2_tra,
             'delNRB_tra': delNRB_tra,
+            'P1_tra': P1_tra,
+            'P2_tra': P2_tra,
         }
         try:
             ret_d['z_tra'] = z_tra
@@ -316,12 +323,11 @@ if __name__ == '__main__':
     mplreader = smmpl_reader
     # mplfile_dir = DIRCONFN(osp.dirname(osp.abspath(__file__)),
     #                        'testNRB_smmpl_E2.mpl')
-    mplfile_dir = '/home/tianli/SOLAR_EMA_project/data/smmpl_E2/20200930/202009300734.mpl'
-    starttime, endtime = None, None
+    starttime = LOCTIMEFN('202009220000', UTCINFO)
+    endtime = LOCTIMEFN('202009230000', UTCINFO)
     ret_d = main(
         lidarname, mplreader,
-        mplfile_dir,
-        starttime, endtime,
+        starttime=starttime, endtime=endtime,
         genboo=True,
         writeboo=False
     )
@@ -336,41 +342,44 @@ if __name__ == '__main__':
     SNR_tra = ret_d['SNR_tra']
 
     # reading sigmaMPL data
-    mplcsvfile_dir = '/home/tianli/SOLAR_EMA_project/data/smmpl_E2/20200930/202009300734_NRB.csv'
-    sigmaNRB = pd.read_csv(mplcsvfile_dir, header=1, index_col=0).to_numpy().T
-    polcut_ind = int((sigmaNRB.shape[1]+1)/2)
-    sigmar_ra = pd.read_csv(mplcsvfile_dir, header=1)['Unnamed: 0'][:polcut_ind]
-    sigmaNRB1_tra = sigmaNRB[:, :polcut_ind]
-    sigmaNRB2_tra = sigmaNRB[:, polcut_ind:]
-    sigmaNRB_tra = sigmaNRB1_tra + sigmaNRB2_tra
+    # mplcsvfile_dir = '/home/tianli/SOLAR_EMA_project/data/smmpl_E2/20200930/202009300734_NRB.csv'
+    # sigmaNRB = pd.read_csv(mplcsvfile_dir, header=1, index_col=0).to_numpy().T
+    # polcut_ind = int((sigmaNRB.shape[1]+1)/2)
+    # sigmar_ra = pd.read_csv(mplcsvfile_dir, header=1)['Unnamed: 0'][:polcut_ind]
+    # sigmaNRB1_tra = sigmaNRB[:, :polcut_ind]
+    # sigmaNRB2_tra = sigmaNRB[:, polcut_ind:]
+    # sigmaNRB_tra = sigmaNRB1_tra + sigmaNRB2_tra
 
     # figure creating
-    fig, (ax, ax1, ax2) = plt.subplots(nrows=3, sharex=True)
+    fig, ax = plt.subplots(nrows=3, sharex=True)
 
     print('plotting the following timestamps:')
-    for i in range(a := 11, a + 1):
+    for i in range(a := 1030, a + 1):
         print(f'\t {ts_ta[i]}')
 
         # plotting computed data
 
-        # ax.plot(z_tra[i][r_trm[i]], NRB1_tra[i][r_trm[i]], color='C0')
-        # ax.plot(z_tra[i][r_trm[i]], NRB2_tra[i][r_trm[i]], color='C1')
-        ax.plot(z_tra[i][r_trm[i]], NRB_tra[i][r_trm[i]], color='C2')
-        # ax1.plot(z_tra[i][r_trm[i]], SNR1_tra[i][r_trm[i]], color='C0')
-        # ax1.plot(z_tra[i][r_trm[i]], SNR2_tra[i][r_trm[i]], color='C1')
-        ax1.plot(z_tra[i][r_trm[i]], SNR_tra[i][r_trm[i]], color='C2')
-        # ax2.plot(
+        # ax[0].plot(z_tra[i][r_trm[i]], NRB1_tra[i][r_trm[i]], color='C0')
+        # ax[0].plot(z_tra[i][r_trm[i]], NRB2_tra[i][r_trm[i]], color='C1')
+        ax[0].plot(z_tra[i][r_trm[i]], NRB_tra[i][r_trm[i]], color='C2')
+        # ax[1].plot(z_tra[i][r_trm[i]], SNR1_tra[i][r_trm[i]], color='C0')
+        # ax[1].plot(z_tra[i][r_trm[i]], SNR2_tra[i][r_trm[i]], color='C1')
+        ax[1].plot(z_tra[i][r_trm[i]], SNR_tra[i][r_trm[i]], color='C2')
+        # ax[2].plot(
             # z_tra[i][r_trm[i]], ret_d['nb1_ta'][i]*np.ones_like(z_tra[i][r_trm[i]]),
         #     z_tra[i][r_trm[i]], ret_d['P1_tra'][i][r_trm[i]],
         #     color='C2'
         # )
+        ax[2].plot(
+            z_tra[i][r_trm[i]], ret_d['P1_tra'][i][r_trm[i]], color='C2'
+        )
 
         # plotting comparison with sigmaMPL
-        ax.plot(sigmar_ra, sigmaNRB_tra[i], color='k')
+        # ax[0].plot(sigmar_ra, sigmaNRB_tra[i], color='k')
 
 
-    ax.set_yscale('log')
-    ax1.set_yscale('log')
-    # ax1.set_ylim([0, NOISEALTITUDE])
-    plt.xlim([0, 15])
+    # ax[0].set_yscale('log')
+    # ax[1].set_yscale('log')
+    # ax[1].set_ylim([0, NOISEALTITUDE])
+    # plt.xlim([0, 15])
     plt.show()

@@ -138,7 +138,7 @@ def main(
                         label='low pass')
 
 
-        # savgol_filter
+        # savgol filter
         times = 1
         window = 51
         poly = 2
@@ -243,15 +243,13 @@ if __name__ == '__main__':
 
     20200922
 
-    139
-    183
-    189
-    269
-    309
-    380
-    416
-    944
-    1032
+    136
+    269                         # very low cloud has to be handled with GCDM
+    306
+    375                         # double peaks
+    423                         # double peak
+    935                         # very sharp peak at low height, cannot see
+    1030                        # noisy peak
     '''
 
     nrb_d = nrb_calc(
