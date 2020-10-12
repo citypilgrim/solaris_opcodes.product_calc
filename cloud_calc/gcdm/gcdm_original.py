@@ -36,7 +36,6 @@ def main(
         r_trm, z_tra, setz_a, setzind_ta,
         SNR_tra, NRB_tra,
         betamprime_tra,
-        combpolboo=True,
         plotboo=False,
 ):
     '''
@@ -55,7 +54,6 @@ def main(
         SNR_tra (np.ndarray): Signal to noise
         NRB_tra (np.ndarray): normalised back scatter
         betamprime_tra (np.ndarray): attenuated backscatter for molecular profile
-        combpolboo (boolean): gcdm on combined polarizations or just co pol
         plotboo (boolean): whether or not to plot computed results
     '''
 
@@ -151,6 +149,7 @@ def main(
 
 
 if __name__ == '__main__':
+    from ...constant_profiles import rayleigh_gen
     from ...nrb_calc import main as nrb_calc
     from ....file_readwrite import smmpl_reader
 
@@ -178,4 +177,28 @@ if __name__ == '__main__':
         genboo=True,
     )
 
-    main(nrb_d, combpolboo=True, plotboo=True)
+    NRB_tra = nrb_d['NRB_tra']
+    SNR_tra = nrb_d['SNR_tra']
+    r_trm = nrb_d['r_trm']
+    setz_a = nrb_d['DeltNbinpadtheta_a']
+    setzind_ta = nrb_d['DeltNbinpadthetaind_ta']
+    z_tra = nrb_d['z_tra']
+
+    # retreiving molecular profile
+    rayleigh_aara = np.array([
+        rayleigh_gen(*setz) for setz in setz_a
+    ])
+    rayleigh_tara = np.array([
+        rayleigh_aara[setzind] for setzind in setzind_ta
+    ])
+    _, _, betamprime_tra, _ = [
+        tra[:, 0, :]
+        for tra in np.hsplit(rayleigh_tara, rayleigh_tara.shape[1])
+    ]
+
+    main(
+        r_trm, z_tra, setz_a, setzind_ta,
+        SNR_tra, NRB_tra,
+        betamprime_tra,
+        plotboo=True
+    )

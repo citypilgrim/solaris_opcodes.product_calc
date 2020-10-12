@@ -110,12 +110,7 @@ def main(
         delnb2s_ta = mpl_d['Background Std Dev 2']**2
 
         ## updating mask
-        r_trm = n_trm * (
-            np.arange(r_tra.shape[1])
-            >= (np.argmax(
-                (r_tra > BOTTOMBLINDRANGE) * (r_tra < TOPBLINDRANGE),
-                axis=1)[:, None])
-        )
+        r_trm = (r_tra > BOTTOMBLINDRANGE) * (r_tra < TOPBLINDRANGE) * n_trm
 
 
         # retrieve calibration files
@@ -333,6 +328,7 @@ if __name__ == '__main__':
     )
     ts_ta = ret_d['Timestamp']
     z_tra = ret_d['z_tra']
+    r_tra = ret_d['r_tra']
     r_trm = ret_d['r_trm']
     NRB1_tra = ret_d['NRB1_tra']
     NRB2_tra = ret_d['NRB2_tra']
@@ -361,17 +357,17 @@ if __name__ == '__main__':
 
         # ax[0].plot(z_tra[i][r_trm[i]], NRB1_tra[i][r_trm[i]], color='C0')
         # ax[0].plot(z_tra[i][r_trm[i]], NRB2_tra[i][r_trm[i]], color='C1')
-        ax[0].plot(z_tra[i][r_trm[i]], NRB_tra[i][r_trm[i]], color='C2')
-        # ax[1].plot(z_tra[i][r_trm[i]], SNR1_tra[i][r_trm[i]], color='C0')
-        # ax[1].plot(z_tra[i][r_trm[i]], SNR2_tra[i][r_trm[i]], color='C1')
-        ax[1].plot(z_tra[i][r_trm[i]], SNR_tra[i][r_trm[i]], color='C2')
+        ax[0].plot(r_tra[i][r_trm[i]], NRB_tra[i][r_trm[i]], color='C2')
+        # ax[1].plot(r_tra[i][r_trm[i]], SNR1_tra[i][r_trm[i]], color='C0')
+        # ax[1].plot(r_tra[i][r_trm[i]], SNR2_tra[i][r_trm[i]], color='C1')
+        ax[1].plot(r_tra[i][r_trm[i]], SNR_tra[i][r_trm[i]], color='C2')
         # ax[2].plot(
-            # z_tra[i][r_trm[i]], ret_d['nb1_ta'][i]*np.ones_like(z_tra[i][r_trm[i]]),
-        #     z_tra[i][r_trm[i]], ret_d['P1_tra'][i][r_trm[i]],
+            # r_tra[i][r_trm[i]], ret_d['nb1_ta'][i]*np.ones_like(r_tra[i][r_trm[i]]),
+        #     r_tra[i][r_trm[i]], ret_d['P1_tra'][i][r_trm[i]],
         #     color='C2'
         # )
         ax[2].plot(
-            z_tra[i][r_trm[i]], ret_d['P1_tra'][i][r_trm[i]], color='C2'
+            r_tra[i][r_trm[i]], ret_d['P1_tra'][i][r_trm[i]], color='C2'
         )
 
         # plotting comparison with sigmaMPL

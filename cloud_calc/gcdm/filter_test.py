@@ -96,7 +96,7 @@ def main(
     '''
     ts_ta = nrbdic['Timestamp']
 
-    for j in range(a := 935, a + 1):
+    for j in range(a := 940, a + 1):
 
         # original
         sampleind = j
@@ -162,8 +162,19 @@ def main(
 
         ax[0].legend()
 
-
         # first derivative
+        T = 0.015
+        sampledz_ra = lowpass1_ra
+        sampledz_ra = np.diff(sampledz_ra) / T
+        sampledzz_ra = T/2 + samplez_ra[:-1]
+        sampledz_ra = sinp.interp1d(               # returns a function
+            sampledzz_ra, sampledz_ra,
+            kind='quadratic', fill_value='extrapolate'
+        )(samplez_ra)
+        ax[1].plot(
+            sampledz_ra, samplez_ra, color=p1[0].get_color()
+        )
+
         T = 0.015
         sampledz_ra = savgol_ra
         sampledz_ra = np.diff(sampledz_ra) / T
