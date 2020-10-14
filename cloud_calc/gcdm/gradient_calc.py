@@ -12,7 +12,7 @@ def main(CRprime_tra, z_tra, setz_a, setzind_ta):
 
     Parameters
         CRprime_tra (np.ndarray): data array
-        z_tra (np.ndarray): range array to take derivative w.r.t to,
+        z_tra (np.ndarray): range array to take derivative w.r.t
         setz_a (list): list of parameter tuples containings the set of tuples to
                        fully describe the z_tra
         setzind_ta (np.ndarray): array of indexes for each array in z_tra to the

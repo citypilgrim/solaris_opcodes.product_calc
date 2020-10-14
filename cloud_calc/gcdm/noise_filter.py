@@ -28,9 +28,9 @@ def main(
         savgolpoly (int): polynomial order for savgol filter
         padding (int): padding of '0's to add to the front of the return array
     Return
-        ret_raa (np.ndarray): (3, masked range), array containing 2 arrays,
-                              first is filtered array, second is masked range array
-                              third is the padding mask
+        ret_raa (np.ndarray): (4, masked range), array containing 2 arrays,
+                              first is original, second is filtered array,
+                              third is masked range array, fourth padding mask
     '''
     input_ra = input_ra[inputmask_ra]
     inputz_ra = inputz_ra[inputmask_ra]
@@ -59,6 +59,7 @@ def main(
     # adding padding
     pad = np.zeros(int(padding))
     ret_raa = np.array([
+        np.append(pad, input_ra),
         np.append(pad, ret_ra),
         np.append(pad, inputz_ra),
         np.append(pad, np.ones(len(ret_ra)-int(padding)))

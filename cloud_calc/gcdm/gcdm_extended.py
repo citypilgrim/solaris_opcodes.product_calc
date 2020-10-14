@@ -60,11 +60,6 @@ def main(
     work_tra = SNR_tra
     workz_tra = z_tra
 
-    # applying filter
-
-    ## handling invalid values
-    # work_tra = np.nan_to_num(work_tra)
-
     ## filters
     pool = mp.Pool(processes=GCDMPROCNUM)
     work_tara = np.array([
@@ -83,9 +78,10 @@ def main(
     ])
     pool.close()
     pool.join()
-    work_tra = work_tara[:, 0, :]
-    workz_tra = work_tara[:, 1, :]
-    gcdm_trm = work_tara[:, 2, :].astype(np.bool)
+    owork_tra = work_tara[:, 0, :]
+    work_tra = work_tara[:, 1, :]
+    workz_tra = work_tara[:, 2, :]
+    gcdm_trm = work_tara[:, 3, :].astype(np.bool)
 
 
     # computing first derivative
@@ -93,6 +89,7 @@ def main(
 
     # computing thresholds
     work0_tra = np.copy(dzwork_tra).flatten()
+    work0_tra[work0_tra < 0] = 0  # handling invalid values
     work0_tra[~(gcdm_trm.flatten())] = np.nan  # set nan to ignore in average
     work0_tra = work0_tra.reshape(*(gcdm_trm.shape))
     barwork_ta = np.nanmean(work0_tra, axis=1)
@@ -142,10 +139,13 @@ def main(
                     j %= len(_cloudmarker_l)
 
                 cldbotind, cldtopind = tup
+                # print(z_ra[cldbotind])
+
                 ax.scatter(amax, z_ra[cldbotind],
                            color=pltcolor, s=100,
                            marker=_cloudmarker_l[j], edgecolor='k')
                 try:
+                    # print(z_ra[cldtopind])
                     ax.scatter(amin, z_ra[cldtopind],
                                color=pltcolor, s=100,
                                marker=_cloudmarker_l[j], edgecolor='k')
@@ -156,7 +156,8 @@ def main(
 
 
             # plotting zero derivative
-            ax.plot(work_tra[i], oz_ra)
+            ax1.plot(owork_tra[i], oz_ra)
+            ax1.plot(work_tra[i], oz_ra)
 
         # ax.set_ylim([0, 5])
         # ax1.set_xscale('log')
