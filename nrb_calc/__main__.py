@@ -4,7 +4,7 @@ import numpy as np
 
 from .range_resampler import main as range_resampler
 from .time_average import main as time_average
-from ..cali_profiles import cali_profiles
+from ..cali_profiles import main as cali_profiles
 from ...file_readwrite import mpl_reader, smmpl_reader
 from ...global_imports.solaris_opcodes import *
 
@@ -116,7 +116,8 @@ def main(
         # retrieve calibration files
         ## calc needed calibration files
         DeltNbinpad_ta = list(zip(Delt_ta, Nbin_ta, pad_ta))
-        DeltNbinpad_a = list(set(DeltNbinpad_ta))
+        tupDeltNbinpad_a = list(set(DeltNbinpad_ta))
+        DeltNbinpad_a = list(map(list, tupDeltNbinpad_a))
         napOE1_raa, napOE2_raa, delnapOE1s_raa, delnapOE2s_raa,\
             Oc_raa, delOcs_raa,\
             D_funca = np.apply_along_axis(
@@ -132,7 +133,7 @@ def main(
         D_func = D_funca[0]    # D_func's are all the same for the same lidar
         ## indexing calculated files
         DeltNbinpad_d = {DeltNbinpad: i
-                         for i, DeltNbinpad in enumerate(DeltNbinpad_a)}
+                         for i, DeltNbinpad in enumerate(tupDeltNbinpad_a)}
         DeltNbinpadind_ta = np.array(
             list(map(lambda x: DeltNbinpad_d[x], DeltNbinpad_ta)),
             dtype=np.int
@@ -229,11 +230,12 @@ def main(
                 tuple,
                 np.append(DeltNbinpad_ta, theta_ta[:, None], axis=-1)
             ))
-            DeltNbinpadtheta_a = list(set(DeltNbinpadtheta_ta))
+            tupDeltNbinpadtheta_a = list(set(DeltNbinpadtheta_ta))
+            DeltNbinpadtheta_a = list(map(list, tupDeltNbinpadtheta_a))
 
             DeltNbinpadtheta_d = {
                 DeltNbinpadtheta: i
-                for i, DeltNbinpadtheta in enumerate(DeltNbinpadtheta_a)
+                for i, DeltNbinpadtheta in enumerate(tupDeltNbinpadtheta_a)
             }
             DeltNbinpadthetaind_ta = np.array(list(map(
                 lambda x: DeltNbinpadtheta_d[x],

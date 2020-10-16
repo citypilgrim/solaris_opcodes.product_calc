@@ -6,6 +6,7 @@ import numpy as np
 
 from .gcdm_algo import main as gcdm_algo
 from .gradient_calc import main as gradient_calc
+from ...nrb_calc import chunk_operate
 from ....global_imports.solaris_opcodes import *
 
 
@@ -67,7 +68,10 @@ def main(
 
     # computing first derivative
     CRprime_tra = NRB_tra / betamprime_tra
-    dzCRprime_tra = gradient_calc(CRprime_tra, z_tra, setz_a, setzind_ta)
+    dzCRprime_tra, z_tra, r_trm, setz_a = chunk_operate(
+        CRprime_tra, z_tra, gcdm_trm, setz_a, setzind_ta,
+        gradient_calc, procnum=GCDMPROCNUM
+    )
 
     # Computing threshold
     CRprime0_tra = np.copy(CRprime_tra).flatten()
