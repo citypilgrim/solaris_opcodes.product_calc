@@ -6,6 +6,7 @@ import numpy as np
 
 from .gcdm_algo import main as gcdm_algo
 from .gradient_calc import main as gradient_calc
+from .mask_out import main as mask_out
 from ...nrb_calc import chunk_operate
 from ....global_imports.solaris_opcodes import *
 
@@ -57,8 +58,19 @@ def main(
         betamprime_tra (np.ndarray): attenuated backscatter for molecular profile
         plotboo (boolean): whether or not to plot computed results
     '''
+    # working arrays being masked
+    oz_tra, or_trm, osetz_a = z_tra, r_trm, setz_a  # 'o' stands for original
+    CRprime_tra = NRB_tra / betamprime_tra
+    CRprime_tra, z_tra, r_trm, setz_a = chunk_operate(
+        CRprime_tra, z_tra, r_trm, setz_a, setzind_ta, mask_out, procnum=GCDMPROCNUM
+    )
+    SNR_tra, _, _, _ = chunk_operate(
+        SNR_tra, oz_tra, or_trm, osetz_a, setzind_ta, mask_out, procnum=GCDMPROCNUM
+    )
 
     # computing gcdm mask
+    # this mask takes into account the padding at the front, and only performs
+    # the SNR mask for the array without padding
     gcdm_trm = np.arange(r_trm.shape[1])\
         <= np.array([
             np.argmax(SNR_tra[i][r_rm] <= NOISEALTITUDE) + np.argmax(r_rm)
@@ -66,10 +78,9 @@ def main(
         ])[:, None]
     gcdm_trm *= r_trm
 
-    # computing first derivative
-    CRprime_tra = NRB_tra / betamprime_tra
-    dzCRprime_tra, z_tra, r_trm, setz_a = chunk_operate(
-        CRprime_tra, z_tra, gcdm_trm, setz_a, setzind_ta,
+    # computing first derivative; altitude and masks are not affected
+    dzCRprime_tra, _, _, _ = chunk_operate(
+        CRprime_tra, z_tra, r_trm, setz_a, setzind_ta,
         gradient_calc, procnum=GCDMPROCNUM
     )
 
@@ -99,7 +110,7 @@ def main(
         yupperlim = z_tra.max()
 
         for i, z_ra in enumerate(z_tra):
-            if i != 935:
+            if i != 1032:
                 continue
 
             # indexing commonly used arrays

@@ -59,14 +59,14 @@ def main(
             z_tra[setzind_Tm],
         ] for i, setzind_Tm in enumerate(setzind_aTm)
     ])
-    _3aTra = np.transpose(_a3Tra, axes=[1, 0])  # (3, alen, chunk len(varies), Nbin)
+    _3aTra = np.transpose(_a3Tra,  # (3, alen, chunk len(varies), Nbin)
+                          axes=[1, 0, *np.arange(_a3Tra.ndim)[2:]])
     pos_aTra, work_aTra, z_aTra = _3aTra
 
     pos_ta = np.concatenate([   # array of positions for unsorted concat chunks
         pos_Tra[:, 0] for pos_Tra in pos_aTra
     ]).astype(np.int)
     pos_ta = np.argsort(pos_ta, kind='heapsort')  # array of indices for sorting
-
     z_ara = np.array([          # (alen, Nbin)
         z_tra[setzind_Tm][0]
         for i, setzind_Tm in enumerate(setzind_aTm)

@@ -6,9 +6,7 @@ import numpy as np
 
 from .gcdm_algo import main as gcdm_algo
 from .gradient_calc import main as gradient_calc
-from .mask_out import main as mask_out
 from .noise_filter import main as noise_filter
-from ...nrb_calc import chunk_operate
 from ...constant_profiles import rayleigh_gen
 from ....global_imports.solaris_opcodes import *
 
@@ -29,6 +27,9 @@ _cloudmarker_l = [
     "D",
     "d",
 ]
+
+_pool = mp.Pool(processes=GCDMPROCNUM)
+
 
 # main func
 @verbose
@@ -52,28 +53,39 @@ def main(
         SNR_tra (np.ndarray): Signal to noise
         plotboo (boolean): whether or not to plot computed results
     '''
-    # working arrays being masked
-    SNR_tra, z_tra, r_trm, setz_a = chunk_operate(
-        SNR_tra, z_tra, r_trm, setz_a, setzind_ta, mask_out, procnum=GCDMPROCNUM
-    )
-    work_tra = SNR_tra
-    owork_tra = SNR_tra
+    # computing gcdm mask
     gcdm_trm = r_trm
 
-    # filtering
-    work_tra, _, _, _, = chunk_operate(
-        work_tra, z_tra, r_trm, setz_a, setzind_ta,
-        noise_filter,
-        FILTERLOWPASSPOLY, FILTERLOWPASSCUT1, FILTERLOWPASSCUT2,
-        FILTERSAVGOLWINDOW, FILTERSAVGOLPOLY,
-        procnum=GCDMPROCNUM
-    )
+    # determining working array
+    work_tra = SNR_tra
+    workz_tra = z_tra
 
-    # computing first derivative; altitude and masks are not affected
-    dzwork_tra, _, _, _ = chunk_operate(
-        work_tra, z_tra, r_trm, setz_a, setzind_ta,
-        gradient_calc, procnum=GCDMPROCNUM
-    )
+    ## filters
+    pool = mp.Pool(processes=GCDMPROCNUM)
+    work_tara = np.array([
+        pool.apply(
+            noise_filter,
+            args=(
+                work_ra, workz_tra[i], gcdm_trm[i],
+                FILTERLOWPASSPOLY, FILTERLOWPASSCUT1, FILTERLOWPASSCUT2,
+                FILTERSAVGOLWINDOW, FILTERSAVGOLPOLY,
+            ),
+            kwds={
+                'padding': setz_a[setzind_ta[i]][2]
+            }
+        )
+        for i, work_ra in enumerate(work_tra)
+    ])
+    pool.close()
+    pool.join()
+    owork_tra = work_tara[:, 0, :]
+    work_tra = work_tara[:, 1, :]
+    workz_tra = work_tara[:, 2, :]
+    gcdm_trm = work_tara[:, 3, :].astype(np.bool)
+
+
+    # computing first derivative
+    dzwork_tra = gradient_calc(work_tra, workz_tra, setz_a, setzind_ta)
 
     # computing thresholds
     work0_tra = np.copy(dzwork_tra).flatten()
@@ -85,24 +97,23 @@ def main(
     amin_ta = (1 - KEMPIRICAL) * barwork_ta
 
     # finding clouds applying algorithm on each axis
-    pool = mp.Pool(processes=GCDMPROCNUM)
     gcdm_ta = np.array([
-        pool.apply(
+        _pool.apply(
             gcdm_algo,
             args=(dzwork_ra, gcdm_trm[i], amin_ta[i], amax_ta[i])
         )
         for i, dzwork_ra in enumerate(dzwork_tra)
     ])
-    pool.close()
-    pool.join()
+    _pool.close()
+    _pool.join()
 
 
     # plot feature
     if plotboo:
         fig, (ax, ax1) = plt.subplots(ncols=2, sharey=True)
-        yupperlim = z_tra.max()
+        yupperlim = workz_tra.max()
 
-        for i, z_ra in enumerate(z_tra):
+        for i, z_ra in enumerate(workz_tra):
             if i != 935:
                 continue
 
