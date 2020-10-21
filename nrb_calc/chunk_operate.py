@@ -77,7 +77,7 @@ def main(
     ])
 
     # performing operation
-    if procnum:                 # multi process
+    if procnum or (procnum is None):                 # multi process
         pool = mp.Pool(processes=procnum)
         _a3a = [
             pool.apply(
