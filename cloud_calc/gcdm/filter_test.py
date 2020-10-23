@@ -268,7 +268,6 @@ if __name__ == '__main__':
         # '/home/tianli/SOLAR_EMA_project/data/smmpl_E2/20200805/202008050003.mpl',
         starttime=LOCTIMEFN('202009220000', UTCINFO),
         endtime=LOCTIMEFN('202009230000', UTCINFO),
-        genboo=True,
     )
 
     main(nrb_d, combpolboo=True, plotboo=True)

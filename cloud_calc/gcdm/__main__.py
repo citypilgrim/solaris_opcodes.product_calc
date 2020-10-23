@@ -44,6 +44,8 @@ def main(
         nrbdic (dict): output from .nrb_calc.py
         combpolboo (boolean): gcdm on combined polarizations or just co pol
         plotboo (boolean): whether or not to plot computed results
+    Return
+        gcdm_ta (np.ndarray): each timestamp contains a list of tuples for the clouds
     '''
     # reading data
     if combpolboo:
@@ -76,13 +78,14 @@ def main(
         for tra in np.hsplit(rayleigh_tara, rayleigh_tara.shape[1])
     ]
 
-
-    # getting products from original GCDM
-
     # getting products from extended GCDM
+    gcdm_ta = gcdm_extended(
+        r_trm, z_tra, setz_a, setzind_ta,
+        SNR_tra,
+        plotboo=False,
+    )
 
-    # combining both products
-
+    # processing the product
 
 
     # plot feature
@@ -140,7 +143,7 @@ def main(
 
 
     # returning
-    '''got to think about this'''
+    return gcdm_ta
 
 
 
@@ -169,7 +172,6 @@ if __name__ == '__main__':
         # '/home/tianli/SOLAR_EMA_project/data/smmpl_E2/20200805/202008050003.mpl',
         starttime=LOCTIMEFN('202009220000', UTCINFO),
         endtime=LOCTIMEFN('202009230000', UTCINFO),
-        genboo=True,
     )
 
     main(nrb_d, combpolboo=True, plotboo=True)

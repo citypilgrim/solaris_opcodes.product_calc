@@ -118,7 +118,7 @@ if __name__ == '__main__':
 
     D_d = FINDFILESFN(DEADTIMEPROFILE, CALIPROFILESDIR,
                       {DTLIDARNAMEFIELD: lidarname})[0]
-    _, D_f = deadtime_genread(D_d, genboo=False)
+    _, D_f = deadtime_genread(D_d)
 
     # plotting to test
     fig, (ax3, ax4) = plt.subplots(nrows=2, sharex=True)

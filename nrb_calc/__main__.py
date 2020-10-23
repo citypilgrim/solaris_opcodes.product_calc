@@ -31,8 +31,6 @@ def main(
         mplfiledir=None,
         starttime=None, endtime=None,
         timestep=None, rangestep=None,
-        genboo=True,
-        writeboo=False,
 ):
     '''
     uncert in E ~= 1% assuming that measurement averages are typically <= 1min,
@@ -41,8 +39,7 @@ def main(
 
     Parameters
         lidarname (str): directory name of lidar
-        mplreader (func): either mpl_reader or smmpl_reader,
-                          must be specified if genboo is True
+        mplreader (func): either mpl_reader or smmpl_reader
         mplfiledir (str): mplfile to be processed if specified, date should be
                           None
         start/endtime (datetime like): approx start/end time of data of interest
@@ -52,12 +49,6 @@ def main(
         rangestep (int): if specified, will return a spatially resampled version
                          of the original,
                          i.e. new range bin size = range bin * rangestep
-        genboo (boolean): if True, will read .mpl files and generate NRB, return
-                          and write
-                          if False, will read exisitng nrb files and only return
-        writeboo (boolean): data is written to filename if True, ignored if genboo
-                            is False.
-                            Does not write time averaged data
 
     Return
         ret_d (dict):
@@ -80,220 +71,199 @@ def main(
             DeltNbinpadthetaind_ta (np.array): DeltNbinpad_a thetaindexes for the tra
                                             arrays
     '''
-    # computation
-    if genboo:
-        # read .mpl files
-        mpl_d = mplreader(
-            DIRCONFN(SOLARISMPLDIR.format(lidarname)),
-            mplfiledir=mplfiledir,
-            starttime=starttime, endtime=endtime,
-            filename=None,
-        )
+    # read .mpl files
+    mpl_d = mplreader(
+        DIRCONFN(SOLARISMPLDIR.format(lidarname)),
+        mplfiledir=mplfiledir,
+        starttime=starttime, endtime=endtime,
+        filename=None,
+    )
 
-        ts_ta = mpl_d['Timestamp']
+    ts_ta = mpl_d['Timestamp']
 
-        n1_tra = mpl_d['Channel #1 Data']  # co-pol
-        n2_tra = mpl_d['Channel #2 Data']  # cross-pol
-        n_trm = mpl_d['Channel Data Mask']
-        r_tra = mpl_d['Range']
+    n1_tra = mpl_d['Channel #1 Data']  # co-pol
+    n2_tra = mpl_d['Channel #2 Data']  # cross-pol
+    n_trm = mpl_d['Channel Data Mask']
+    r_tra = mpl_d['Range']
 
-        E_ta = mpl_d['Energy Monitor']
-        N_ta = mpl_d['Shots Sum']
+    E_ta = mpl_d['Energy Monitor']
+    N_ta = mpl_d['Shots Sum']
 
-        Delt_ta = mpl_d['Bin Time']  # temporal size of bin
-        Nbin_ta = mpl_d['Number Data Bins']
-        pad_ta = mpl_d['Pad']   # front padding in each range array)
+    Delt_ta = mpl_d['Bin Time']  # temporal size of bin
+    Nbin_ta = mpl_d['Number Data Bins']
+    pad_ta = mpl_d['Pad']   # front padding in each range array)
 
-        nb1_ta = mpl_d['Background Average']
-        delnb1s_ta = mpl_d['Background Std Dev']**2
-        nb2_ta = mpl_d['Background Average 2']
-        delnb2s_ta = mpl_d['Background Std Dev 2']**2
+    nb1_ta = mpl_d['Background Average']
+    delnb1s_ta = mpl_d['Background Std Dev']**2
+    nb2_ta = mpl_d['Background Average 2']
+    delnb2s_ta = mpl_d['Background Std Dev 2']**2
 
-        ## updating mask
-        r_trm = (r_tra > BOTTOMBLINDRANGE) * (r_tra < TOPBLINDRANGE) * n_trm
+    ## updating mask
+    r_trm = (r_tra > BOTTOMBLINDRANGE) * (r_tra < TOPBLINDRANGE) * n_trm
 
 
-        # retrieve calibration files
-        ## calc needed calibration files
-        DeltNbinpad_ta = list(zip(Delt_ta, Nbin_ta, pad_ta))
-        tupDeltNbinpad_a = list(set(DeltNbinpad_ta))
-        DeltNbinpad_a = list(map(list, tupDeltNbinpad_a))
-        napOE1_raa, napOE2_raa, delnapOE1s_raa, delnapOE2s_raa,\
-            Oc_raa, delOcs_raa,\
-            D_funca = np.apply_along_axis(
-                _aaacaliprofiles_func, 0, np.array(DeltNbinpad_a).T,
-                (lidarname, ), {
-                    'mplreader': mplreader,
-                    'plotboo': False,
-                    'verbboo': True
-                }
-            )
-        cali_raal = [napOE1_raa, napOE2_raa, delnapOE1s_raa, delnapOE2s_raa,
-                     Oc_raa, delOcs_raa]
-        D_func = D_funca[0]    # D_func's are all the same for the same lidar
-        ## indexing calculated files
-        DeltNbinpad_d = {DeltNbinpad: i
-                         for i, DeltNbinpad in enumerate(tupDeltNbinpad_a)}
-        DeltNbinpadind_ta = np.array(
-            list(map(lambda x: DeltNbinpad_d[x], DeltNbinpad_ta)),
-            dtype=np.int
-        )
-        napOE1_tra, napOE2_tra, delnapOE1s_tra, delnapOE2s_tra,\
-            Oc_tra, delOcs_tra = [
-                np.array(list(map(lambda x: raa[x],  DeltNbinpadind_ta)))
-                for raa in cali_raal
-            ]
-
-        # change dtype of channels to cope for D_func calculation
-        n1_tra = n1_tra.astype(np.float64)
-        n2_tra = n2_tra.astype(np.float64)
-
-        nb1P1_ta = nb1_ta * D_func(nb1_ta)
-        nb2P2_ta = nb2_ta * D_func(nb2_ta)
-
-        # pre calc derived quantities
-        P1_tra = n1_tra * D_func(n1_tra)
-        P2_tra = n2_tra * D_func(n2_tra)
-        delP1s_tra = P1_tra/N_ta[:, None]
-        delP2s_tra = P2_tra/N_ta[:, None]
-
-        nap1_tra = napOE1_tra * E_ta[:, None]
-        delnap1s_tra = (napOE1_tra * DELEOVERE * E_ta[:, None])**2\
-            + (E_ta[:, None] * delnapOE1s_tra)**2
-        nap2_tra = napOE2_tra * E_ta[:, None]
-        delnap2s_tra = (napOE2_tra * DELEOVERE * E_ta[:, None])**2\
-            + (E_ta[:, None] * delnapOE2s_tra)**2
-
-
-        # compute NRB
-        NRB1_tra = (
-            (P1_tra - nb1P1_ta[:, None]) / E_ta[:, None]
-            - napOE1_tra
-        ) / Oc_tra * (r_tra**2)
-        NRB2_tra = (
-            (P2_tra - nb2P2_ta[:, None]) / E_ta[:, None]
-            - napOE2_tra
-        ) / Oc_tra * (r_tra**2)
-        NRB_tra = NRB1_tra + NRB2_tra
-
-        # compute delNRB
-        delNRB1_tra = np.sqrt(
-            (delP1s_tra + delnb1s_ta[:, None] + delnap1s_tra)
-            / ((P1_tra - nb1_ta[:, None] - nap1_tra)**2)
-            + DELEOVERE**2
-            + delOcs_tra/(Oc_tra**2)
-        )
-        delNRB2_tra = np.sqrt(
-            (delP2s_tra + delnb2s_ta[:, None] + delnap2s_tra)
-            / ((P2_tra - nb2_ta[:, None] - nap2_tra)**2)
-            + DELEOVERE**2
-            + delOcs_tra/(Oc_tra**2)
-        )
-        delNRB_tra = np.sqrt(
-            (
-                delP1s_tra + delnb1s_ta[:, None] + delnap1s_tra
-                + delP2s_tra + delnb2s_ta[:, None] + delnap2s_tra
-            ) / ((
-                P1_tra - nb1_ta[:, None] - nap1_tra
-                + P2_tra - nb2_ta[:, None] - nap2_tra
-            )**2)
-            + DELEOVERE**2
-            + delOcs_tra/(Oc_tra**2)
-        )
-
-        # handling nan values
-        NRB1_tra = np.nan_to_num(NRB1_tra)
-        NRB2_tra = np.nan_to_num(NRB2_tra)
-        NRB_tra = np.nan_to_num(NRB_tra)
-        delNRB1_tra = np.nan_to_num(delNRB1_tra)
-        delNRB2_tra = np.nan_to_num(delNRB2_tra)
-        delNRB_tra = np.nan_to_num(delNRB_tra)
-
-        # handling altitude
-        try:
-            azi_ta = mpl_d['Azimuth Angle']
-            ele_ta = mpl_d['Elevation Angle']
-
-            # handling no scanner usage
-            noscanscene_ta = ~(mpl_d['Scan Scenario Flag'].astype(np.bool))
-            azi_ta[noscanscene_ta] = _static_azimuth
-            ele_ta[noscanscene_ta] = _static_elevation
-
-            theta_ta, phi_ta = LIDAR2SPHEREFN(np.stack([azi_ta, ele_ta], axis=1),
-                                              np.deg2rad(ANGOFFSET))
-            z_tra = np.cos(theta_ta)[:, None] * r_tra
-
-            # creating theta set and index array
-            theta_a = list(set(theta_ta))
-
-            DeltNbinpadtheta_ta = list(map(
-                tuple,
-                np.append(DeltNbinpad_ta, theta_ta[:, None], axis=-1)
-            ))
-            tupDeltNbinpadtheta_a = list(set(DeltNbinpadtheta_ta))
-            DeltNbinpadtheta_a = list(map(list, tupDeltNbinpadtheta_a))
-
-            DeltNbinpadtheta_d = {
-                DeltNbinpadtheta: i
-                for i, DeltNbinpadtheta in enumerate(tupDeltNbinpadtheta_a)
+    # retrieve calibration files
+    ## calc needed calibration files
+    DeltNbinpad_ta = list(zip(Delt_ta, Nbin_ta, pad_ta))
+    tupDeltNbinpad_a = list(set(DeltNbinpad_ta))
+    DeltNbinpad_a = list(map(list, tupDeltNbinpad_a))
+    napOE1_raa, napOE2_raa, delnapOE1s_raa, delnapOE2s_raa,\
+        Oc_raa, delOcs_raa,\
+        D_funca = np.apply_along_axis(
+            _aaacaliprofiles_func, 0, np.array(DeltNbinpad_a).T,
+            (lidarname, ), {
+                'mplreader': mplreader,
+                'plotboo': False,
+                'verbboo': True
             }
-            DeltNbinpadthetaind_ta = np.array(list(map(
-                lambda x: DeltNbinpadtheta_d[x],
-                DeltNbinpadtheta_ta
-            )))
+        )
+    cali_raal = [napOE1_raa, napOE2_raa, delnapOE1s_raa, delnapOE2s_raa,
+                 Oc_raa, delOcs_raa]
+    D_func = D_funca[0]    # D_func's are all the same for the same lidar
+    ## indexing calculated files
+    DeltNbinpad_d = {DeltNbinpad: i
+                     for i, DeltNbinpad in enumerate(tupDeltNbinpad_a)}
+    DeltNbinpadind_ta = np.array(
+        list(map(lambda x: DeltNbinpad_d[x], DeltNbinpad_ta)),
+        dtype=np.int
+    )
+    napOE1_tra, napOE2_tra, delnapOE1s_tra, delnapOE2s_tra,\
+        Oc_tra, delOcs_tra = [
+            np.array(list(map(lambda x: raa[x],  DeltNbinpadind_ta)))
+            for raa in cali_raal
+        ]
 
-        except KeyError:
-            pass
+    # change dtype of channels to cope for D_func calculation
+    n1_tra = n1_tra.astype(np.float64)
+    n2_tra = n2_tra.astype(np.float64)
+
+    nb1P1_ta = nb1_ta * D_func(nb1_ta)
+    nb2P2_ta = nb2_ta * D_func(nb2_ta)
+
+    # pre calc derived quantities
+    P1_tra = n1_tra * D_func(n1_tra)
+    P2_tra = n2_tra * D_func(n2_tra)
+    delP1s_tra = P1_tra/N_ta[:, None]
+    delP2s_tra = P2_tra/N_ta[:, None]
+
+    nap1_tra = napOE1_tra * E_ta[:, None]
+    delnap1s_tra = (napOE1_tra * DELEOVERE * E_ta[:, None])**2\
+        + (E_ta[:, None] * delnapOE1s_tra)**2
+    nap2_tra = napOE2_tra * E_ta[:, None]
+    delnap2s_tra = (napOE2_tra * DELEOVERE * E_ta[:, None])**2\
+        + (E_ta[:, None] * delnapOE2s_tra)**2
 
 
-        # Storing data
-        ret_d = {
-            'Timestamp': ts_ta,
-            'DeltNbinpad_a': DeltNbinpad_a,
-            'DeltNbinpadind_ta': DeltNbinpadind_ta,
-            'r_tra': r_tra,
-            'r_trm': r_trm,
-            'NRB_tra': NRB_tra,
-            'NRB1_tra': NRB1_tra,
-            'NRB2_tra': NRB2_tra,
-            'SNR_tra': NRB_tra/delNRB_tra,
-            'SNR1_tra': NRB1_tra/delNRB2_tra,
-            'SNR2_tra': NRB2_tra/delNRB2_tra,
-            'delNRB1_tra': delNRB1_tra,
-            'delNRB2_tra': delNRB2_tra,
-            'delNRB_tra': delNRB_tra,
-            'P1_tra': P1_tra,
-            'P2_tra': P2_tra,
+    # compute NRB
+    NRB1_tra = (
+        (P1_tra - nb1P1_ta[:, None]) / E_ta[:, None]
+        - napOE1_tra
+    ) / Oc_tra * (r_tra**2)
+    NRB2_tra = (
+        (P2_tra - nb2P2_ta[:, None]) / E_ta[:, None]
+        - napOE2_tra
+    ) / Oc_tra * (r_tra**2)
+    NRB_tra = NRB1_tra + NRB2_tra
+
+    # compute delNRB
+    delNRB1_tra = np.sqrt(
+        (delP1s_tra + delnb1s_ta[:, None] + delnap1s_tra)
+        / ((P1_tra - nb1_ta[:, None] - nap1_tra)**2)
+        + DELEOVERE**2
+        + delOcs_tra/(Oc_tra**2)
+    )
+    delNRB2_tra = np.sqrt(
+        (delP2s_tra + delnb2s_ta[:, None] + delnap2s_tra)
+        / ((P2_tra - nb2_ta[:, None] - nap2_tra)**2)
+        + DELEOVERE**2
+        + delOcs_tra/(Oc_tra**2)
+    )
+    delNRB_tra = np.sqrt(
+        (
+            delP1s_tra + delnb1s_ta[:, None] + delnap1s_tra
+            + delP2s_tra + delnb2s_ta[:, None] + delnap2s_tra
+        ) / ((
+            P1_tra - nb1_ta[:, None] - nap1_tra
+            + P2_tra - nb2_ta[:, None] - nap2_tra
+        )**2)
+        + DELEOVERE**2
+        + delOcs_tra/(Oc_tra**2)
+    )
+
+    # handling nan values
+    NRB1_tra = np.nan_to_num(NRB1_tra)
+    NRB2_tra = np.nan_to_num(NRB2_tra)
+    NRB_tra = np.nan_to_num(NRB_tra)
+    delNRB1_tra = np.nan_to_num(delNRB1_tra)
+    delNRB2_tra = np.nan_to_num(delNRB2_tra)
+    delNRB_tra = np.nan_to_num(delNRB_tra)
+
+    # handling altitude
+    try:
+        azi_ta = mpl_d['Azimuth Angle']
+        ele_ta = mpl_d['Elevation Angle']
+
+        # handling no scanner usage
+        noscanscene_ta = ~(mpl_d['Scan Scenario Flag'].astype(np.bool))
+        azi_ta[noscanscene_ta] = _static_azimuth
+        ele_ta[noscanscene_ta] = _static_elevation
+
+        theta_ta, phi_ta = LIDAR2SPHEREFN(np.stack([azi_ta, ele_ta], axis=1),
+                                          np.deg2rad(ANGOFFSET))
+        z_tra = np.cos(theta_ta)[:, None] * r_tra
+
+        # creating theta set and index array
+        theta_a = list(set(theta_ta))
+
+        DeltNbinpadtheta_ta = list(map(
+            tuple,
+            np.append(DeltNbinpad_ta, theta_ta[:, None], axis=-1)
+        ))
+        tupDeltNbinpadtheta_a = list(set(DeltNbinpadtheta_ta))
+        DeltNbinpadtheta_a = list(map(list, tupDeltNbinpadtheta_a))
+
+        DeltNbinpadtheta_d = {
+            DeltNbinpadtheta: i
+            for i, DeltNbinpadtheta in enumerate(tupDeltNbinpadtheta_a)
         }
-        try:
-            ret_d['z_tra'] = z_tra
-            ret_d['theta_ta'] = theta_ta
-            ret_d['theta_a'] = theta_a
-            ret_d['phi_ta'] = phi_ta
-            ret_d['DeltNbinpadtheta_a'] = DeltNbinpadtheta_a
-            ret_d['DeltNbinpadthetaind_ta'] = DeltNbinpadthetaind_ta
-        except NameError:
-            pass
+        DeltNbinpadthetaind_ta = np.array(list(map(
+            lambda x: DeltNbinpadtheta_d[x],
+            DeltNbinpadtheta_ta
+        )))
+
+    except KeyError:
+        pass
 
 
-    # writing and reading from NRB file
-        if writeboo:            # write to file
-            ret_d = {key: ret_d[key].tolist() for key in list(ret_d.keys())}
-            with open(DIRCONFN(SOLARISMPLDIR.format(lidarname),
-                               DATEFMT.format(starttime),
-                               NRBDIR.format(starttime, endtime)),
-                      'w') as json_file:
-                json_file.write(json.dumps(ret_d))
+    # Storing data
+    ret_d = {
+        'Timestamp': ts_ta,
+        'DeltNbinpad_a': DeltNbinpad_a,
+        'DeltNbinpadind_ta': DeltNbinpadind_ta,
+        'r_tra': r_tra,
+        'r_trm': r_trm,
+        'NRB_tra': NRB_tra,
+        'NRB1_tra': NRB1_tra,
+        'NRB2_tra': NRB2_tra,
+        'SNR_tra': NRB_tra/delNRB_tra,
+        'SNR1_tra': NRB1_tra/delNRB2_tra,
+        'SNR2_tra': NRB2_tra/delNRB2_tra,
+        'delNRB1_tra': delNRB1_tra,
+        'delNRB2_tra': delNRB2_tra,
+        'delNRB_tra': delNRB_tra,
+        'P1_tra': P1_tra,
+        'P2_tra': P2_tra,
+    }
+    try:
+        ret_d['z_tra'] = z_tra
+        ret_d['theta_ta'] = theta_ta
+        ret_d['theta_a'] = theta_a
+        ret_d['phi_ta'] = phi_ta
+        ret_d['DeltNbinpadtheta_a'] = DeltNbinpadtheta_a
+        ret_d['DeltNbinpadthetaind_ta'] = DeltNbinpadthetaind_ta
+    except NameError:
+        pass
 
-    else:                       # reading from file
-        with open(DIRCONFN(SOLARISMPLDIR.format(lidarname),
-                               DATEFMT.format(starttime),
-                               NRBDIR.format(starttime, endtime)),
-                  ) as json_file:
-            ret_d = json.load(json_file)
-        ret_d = {
-            key: np.array(ret_d[key]) for key in list(ret_d.keys())
-        }
 
     # performing time average
     if timestep:
@@ -325,8 +295,6 @@ if __name__ == '__main__':
     ret_d = main(
         lidarname, mplreader,
         starttime=starttime, endtime=endtime,
-        genboo=True,
-        writeboo=False
     )
     ts_ta = ret_d['Timestamp']
     z_tra = ret_d['z_tra']

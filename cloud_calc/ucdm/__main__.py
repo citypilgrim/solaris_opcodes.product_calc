@@ -214,14 +214,12 @@ if __name__ == '__main__':
         # starttime=LOCTIMEFN('202009010000', UTCINFO),
         # endtime=LOCTIMEFN('202009010800', UTCINFO),
         timestep=None, rangestep=5,
-        genboo=True,
     )
 
     # nrb_d = nrb_calc(
     #     'mpl_S2S', mpl_reader,
     #     '/home/tianli/SOLAR_EMA_project/data/mpl_S2S/20200602/202006020000.mpl',
     #     timestep=5, rangestep=None,
-    #     genboo=True,
     # )
 
     main(nrb_d, combpolboo=True, plotboo=True)

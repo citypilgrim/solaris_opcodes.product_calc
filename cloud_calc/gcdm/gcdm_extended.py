@@ -51,6 +51,8 @@ def main(
                                  in all 'tra' arrays
         SNR_tra (np.ndarray): Signal to noise
         plotboo (boolean): whether or not to plot computed results
+    Return
+        gcdm_ta (np.ndarray): each timestamp contains a list of tuples for the clouds
     '''
     # working arrays being masked
     SNR_tra, z_tra, r_trm, setz_a = chunk_operate(
@@ -153,6 +155,9 @@ def main(
         plt.show()
 
 
+    return gcdm_ta
+
+
 
 
 
@@ -179,7 +184,6 @@ if __name__ == '__main__':
         # '/home/tianli/SOLAR_EMA_project/data/smmpl_E2/20200805/202008050003.mpl',
         starttime=LOCTIMEFN('202009220000', UTCINFO),
         endtime=LOCTIMEFN('202009230000', UTCINFO),
-        genboo=True,
     )
 
     NRB_tra = nrb_d['NRB_tra']
