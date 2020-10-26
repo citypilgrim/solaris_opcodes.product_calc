@@ -31,6 +31,7 @@ def main(
         mplfiledir=None,
         starttime=None, endtime=None,
         timestep=None, rangestep=None,
+        angularoffset=0,
 ):
     '''
     uncert in E ~= 1% assuming that measurement averages are typically <= 1min,
@@ -49,6 +50,7 @@ def main(
         rangestep (int): if specified, will return a spatially resampled version
                          of the original,
                          i.e. new range bin size = range bin * rangestep
+        angularoffset (float): [deg] angular offset of lidar zero from north
 
     Return
         ret_d (dict):
@@ -209,7 +211,7 @@ def main(
         ele_ta[noscanscene_ta] = _static_elevation
 
         theta_ta, phi_ta = LIDAR2SPHEREFN(np.stack([azi_ta, ele_ta], axis=1),
-                                          np.deg2rad(ANGOFFSET))
+                                          np.deg2rad(angularoffset))
         z_tra = np.cos(theta_ta)[:, None] * r_tra
 
         # creating theta set and index array

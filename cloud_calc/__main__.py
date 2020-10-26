@@ -1,11 +1,11 @@
 # imports
 from .gcdm import main as gcdm
 # from .ucdm import main as ucdm
+from ...global_imports.solaris_opcodes import *
 
 # main func
 def main(
         nrbdic,
-        smmplboo=True, pixelsize=None,
         combpolboo=True,
         plotboo=False,
 ):
@@ -15,17 +15,23 @@ def main(
 
     Parameters
         nrbdic (dict): output from .nrb_calc.py
-        smmplboo (boolean): decides whether or not it is necesssary average data
-                            in grid points
-        pixelsize (float): [km], averaging size of pixel
         combpolboo (boolean): gcdm on combined polarizations or just co pol
         plotboo (boolean): whether or not to plot computed results
     Return
-        cloudmask_ta (np.ndarray): each timestamp contains a list of tuples for the
-                                   clouds
-        cloudbottom_a (np.ndarray):
+        cloud_d (dict):
+            CLOUDMASKKEY (np.ndarray): each timestamp contains a list of tuples for the
+                                       clouds
     '''
+    cloud_d = {}
 
+    # performing gcdm computation
+    gcdm_ta = gcdm(nrbdic, combpolboo, plotboo)
+
+    # performing cloud logic
+    '''update here after mplnet visualisation'''
+    cloud_d[CLOUDMASKKEY] = gcdm_ta
+
+    return cloud_d
 
 
 # testing
