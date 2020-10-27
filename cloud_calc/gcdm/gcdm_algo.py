@@ -46,9 +46,10 @@ def main(
         cloudbotind_a = np.insert(cloudbotind_a[1::2], 0, 0)
     else:
         cloudbotind_a = cloudbotind_a[::2]
+    cloudbotz_a = z_ra[cloudbotind_a]
 
     # finding cloud top
-    cloudtopind_a = []
+    cloudtopz_a = np.array([])
     for cloudbotind in cloudbotind_a:
 
         crossaminboo_a = dzCRprime_ra[cloudbotind:] < amin
@@ -58,26 +59,16 @@ def main(
             crossaminboo_a = dzCRprime_ra[crossaminind:] > amin
             if crossaminboo_a.any():
                 cloudtopind = np.argmax(crossaminboo_a) + crossaminind
+                cloudtopz = z_ra[cloudtopind]
             else:
-                cloudtopind = np.nan
+                cloudtopz = np.nan
 
         else:                   # array val did not decrease enough, cld top not found
-            cloudtopind = np.nan
+            cloudtopz = np.nan
 
-        cloudtopind_a.append(cloudtopind)
+        cloudtopz_a = np.append(cloudtopz_a, cloudtopz)
 
-    # converting indices to altitude values
-    gcdm_a = np.array(list(map(list, zip(cloudbotind_a, cloudtopind_a))))
-    gcdmshape = gcdm_a.shape
-    gcdm_a = gcdm_a.flatten()
-    notnan_m = ~np.isnan(gcdm_a)
-
-    gcdm_a[notnan_m] = z_ra[gcdm_a[notnan_m].astype(np.int)]
-    print(gcdm_a)
-    import sys; sys.exit(0)
-
-    gcdm_a = gcdm_a.reshape(gcdmshape)
-
+    gcdm_a = np.stack([cloudbotz_a, cloudtopz_a], axis=1)
     return gcdm_a
 
 

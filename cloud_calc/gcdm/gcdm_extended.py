@@ -91,7 +91,7 @@ def main(
     gcdm_ta = np.array([
         pool.apply(
             gcdm_algo,
-            args=(dzwork_ra, gcdm_trm[i], amin_ta[i], amax_ta[i])
+            args=(dzwork_ra, z_tra[i], gcdm_trm[i], amin_ta[i], amax_ta[i])
         )
         for i, dzwork_ra in enumerate(dzwork_tra)
     ])
@@ -125,26 +125,17 @@ def main(
 
             ## plotting clouds
             gcdm_a = gcdm_ta[i]
-            for j, tup in enumerate(gcdm_a):
+            for j, cld in enumerate(gcdm_a):
                 if j >= len(_cloudmarker_l):
                     j %= len(_cloudmarker_l)
 
-                cldbotind, cldtopind = tup
-                # print(z_ra[cldbotind])
-
-                ax.scatter(amax, z_ra[cldbotind],
+                cldbot, cldtop = cld
+                ax.scatter(amax, cldbot,
                            color=pltcolor, s=100,
                            marker=_cloudmarker_l[j], edgecolor='k')
-                try:
-                    # print(z_ra[cldtopind])
-                    ax.scatter(amin, z_ra[cldtopind],
-                               color=pltcolor, s=100,
-                               marker=_cloudmarker_l[j], edgecolor='k')
-                except IndexError:
-                    # for cloud tops that cannot be found
-                    # i.e. cldtopind == np.nan
-                    pass
-
+                ax.scatter(amin, cldtop,
+                           color=pltcolor, s=100,
+                           marker=_cloudmarker_l[j], edgecolor='k')
 
             # plotting zero derivative
             ax1.plot(owork_tra[i], oz_ra)

@@ -110,7 +110,7 @@ def main(
         yupperlim = z_tra.max()
 
         for i, z_ra in enumerate(z_tra):
-            if i != 1032:
+            if i != 0:
                 continue
 
             # indexing commonly used arrays
@@ -130,9 +130,6 @@ def main(
 
             ## plotting clouds
             gcdm_a = gcdm_ta[i]
-            print(gcdm_a)
-            import sys; sys.exit(0)
-
             for j, cld in enumerate(gcdm_a):
                 if j >= len(_cloudmarker_l):
                     j %= len(_cloudmarker_l)
@@ -141,15 +138,9 @@ def main(
                 ax.scatter(amax, cldbot,
                            color=pltcolor, s=100,
                            marker=_cloudmarker_l[j], edgecolor='k')
-                try:
-                    ax.scatter(amin, cldtop,
-                               color=pltcolor, s=100,
-                               marker=_cloudmarker_l[j], edgecolor='k')
-                except IndexError:
-                    # for cloud tops that cannot be found
-                    # i.e. cldtopind == np.nan
-                    pass
-
+                ax.scatter(amin, cldtop,
+                           color=pltcolor, s=100,
+                           marker=_cloudmarker_l[j], edgecolor='k')
 
             # plotting zero derivative
             ax1.plot(CRprime_tra[i], oz_ra)
@@ -191,7 +182,8 @@ if __name__ == '__main__':
         'smmpl_E2', smmpl_reader,
         # '/home/tianli/SOLAR_EMA_project/data/smmpl_E2/20200805/202008050003.mpl',
         starttime=LOCTIMEFN('202009220000', UTCINFO),
-        endtime=LOCTIMEFN('202009230000', UTCINFO),
+        endtime=LOCTIMEFN('202009220100', UTCINFO),
+        # endtime=LOCTIMEFN('202009230000', UTCINFO),
     )
 
     NRB_tra = nrb_d['NRB_tra']
