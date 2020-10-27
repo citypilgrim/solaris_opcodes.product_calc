@@ -6,7 +6,7 @@ from ....global_imports.solaris_opcodes import *
 
 # main func
 def main(
-        dzCRprime_ra, gcdm_rm,
+        dzCRprime_ra, z_ra, gcdm_rm,
         amin, amax,
 ):
     '''
@@ -18,18 +18,20 @@ def main(
 
     Parameters
         dzCRprime_ra (np.ndarray): first derivative of CRprime, refer to paper
+        z_ra (np.ndarray): corresponding altitude array
         gcdm_rm (np.ndarray): mask for GCDM
         amin/max (float): threshold values for GCDM
 
     Return
-        gcdm_a (list): list of tuples. Each tuple within a list signifies a
-                       cloud. Within each tuple is (cld bot ind, cld top ind)
-                       indices are taken w.r.t to dzCRprime_ta after applying
-                       the gcdm mask
-                       If the corresponding cloud top for a given cloud
-                       bottom is not detected, np.nan is placed.
+        gcdm_a (np.ndarray): nested array. Each inner array signifies a cloud.
+                             inner array = [cld bot ind, cld top ind]
+                             indices are taken w.r.t to dzCRprime_ta after applying
+                             the gcdm mask
+                             If the corresponding cloud top for a given cloud
+                             bottom is not detected, np.nan is placed.
     '''
     dzCRprime_ra = dzCRprime_ra[gcdm_rm]
+    z_ra = z_ra[gcdm_rm]
 
     # finding cloud bases
     amaxcross_rm = (dzCRprime_ra >= amax)
@@ -59,12 +61,24 @@ def main(
             else:
                 cloudtopind = np.nan
 
-        else:                   # array val did not decrease significantly
+        else:                   # array val did not decrease enough, cld top not found
             cloudtopind = np.nan
 
         cloudtopind_a.append(cloudtopind)
 
-    return list(zip(cloudbotind_a, cloudtopind_a))
+    # converting indices to altitude values
+    gcdm_a = np.array(list(map(list, zip(cloudbotind_a, cloudtopind_a))))
+    gcdmshape = gcdm_a.shape
+    gcdm_a = gcdm_a.flatten()
+    notnan_m = ~np.isnan(gcdm_a)
+
+    gcdm_a[notnan_m] = z_ra[gcdm_a[notnan_m].astype(np.int)]
+    print(gcdm_a)
+    import sys; sys.exit(0)
+
+    gcdm_a = gcdm_a.reshape(gcdmshape)
+
+    return gcdm_a
 
 
 # testing

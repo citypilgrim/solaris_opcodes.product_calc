@@ -31,9 +31,9 @@ def main(
     Parameters
         lidarname (str): directory name of lidar
         mplreader (func): either mpl_reader or smmpl_reader
-        mplfiledir (str): mplfile to be processed if specified, date should be
-                          None
-        start/endtime (datetime like): approx start/end time of data of interest
+        mplfiledir (str): mplfile to be processed if specified, start/end time
+                          do not have to be specified
+        start/endtime (datetime like): approx start/end time of data of interest.
         timestep (int): if specified, will return a time averaged version of the
                         original,
                         i.e. new timedelta = timedelta * timestep
@@ -72,7 +72,7 @@ def main(
         timestep=None, rangestep=None,
         angularoffset=angularoffset,
     )
-
+    product_d[NRBKEY] = nrb_d
 
     # product computation
 
@@ -80,7 +80,6 @@ def main(
     product_d[CLOUDKEY] = cloud_calc(
         nrb_d, combpolboo,
     )
-
 
     # geolocating products
     product_d[PRODUCTLATKEY], product_d[PRODUCTLONGKEY] = product_geolocate(

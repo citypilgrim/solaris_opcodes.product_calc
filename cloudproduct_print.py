@@ -51,7 +51,6 @@ if __name__ == '__main__':
     elevation = 70                              # [m]
 
 
-
     # retreiving optimal time
     starttime, endtime = optimaltime_search(LOCTIMEFN(datetime.now(), UTCINFO))
 

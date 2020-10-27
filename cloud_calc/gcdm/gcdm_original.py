@@ -96,7 +96,7 @@ def main(
     gcdm_ta = np.array([
         _pool.apply(
             gcdm_algo,
-            args=(dzCRprime_ra, gcdm_trm[i], amin_ta[i], amax_ta[i])
+            args=(dzCRprime_ra, z_tra[i], gcdm_trm[i], amin_ta[i], amax_ta[i])
         )
         for i, dzCRprime_ra in enumerate(dzCRprime_tra)
     ])
@@ -130,16 +130,19 @@ def main(
 
             ## plotting clouds
             gcdm_a = gcdm_ta[i]
-            for j, tup in enumerate(gcdm_a):
+            print(gcdm_a)
+            import sys; sys.exit(0)
+
+            for j, cld in enumerate(gcdm_a):
                 if j >= len(_cloudmarker_l):
                     j %= len(_cloudmarker_l)
 
-                cldbotind, cldtopind = tup
-                ax.scatter(amax, z_ra[cldbotind],
+                cldbot, cldtop = cld
+                ax.scatter(amax, cldbot,
                            color=pltcolor, s=100,
                            marker=_cloudmarker_l[j], edgecolor='k')
                 try:
-                    ax.scatter(amin, z_ra[cldtopind],
+                    ax.scatter(amin, cldtop,
                                color=pltcolor, s=100,
                                marker=_cloudmarker_l[j], edgecolor='k')
                 except IndexError:
