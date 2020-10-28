@@ -11,7 +11,7 @@ from ..global_imports.solaris_opcodes import *
 def main(
         lidarname, mplreader,
         mplfiledir=None,
-        startime=None, endtime=None,
+        starttime=None, endtime=None,
         timestep=None, rangestep=None,
         angularoffset=0,
 
@@ -59,18 +59,18 @@ def main(
             PRODUCTLATKEY (np.ndarray): latitude coordinates
             PRODUCTLONGKEY (np.ndarray): longitudinal coordinates
 
-            ...other product dictionary keys: each dictionary contains all product
-                                              information, augmented with grid sampling
+            ..other product dictionary keys: each dictionary contains all product
+                                             information, augmented with grid sampling
     '''
     product_d = {}
 
     # computing NRB
     nrb_d = nrb_calc(
         lidarname, mplreader,
-        mplfiledir=None,
-        starttime=None, endtime=None,
-        timestep=None, rangestep=None,
-        angularoffset=angularoffset,
+        mplfiledir,
+        starttime, endtime,
+        timestep, rangestep,
+        angularoffset,
     )
     product_d[NRBKEY] = nrb_d
 
@@ -82,11 +82,12 @@ def main(
     )
 
     # geolocating products
-    product_d[PRODUCTLATKEY], product_d[PRODUCTLONGKEY] = product_geolocate(
-            product_d,
-            pixelsize, gridlen,
-            latitude, longitude, elevation
-        )
+    '''uncomment after implementing product_gelocate'''
+    # product_d[PRODUCTLATKEY], product_d[PRODUCTLONGKEY] = product_geolocate(
+    #         product_d,
+    #         pixelsize, gridlen,
+    #         latitude, longitude, elevation
+    #     )
 
     return product_d
 

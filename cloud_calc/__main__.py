@@ -1,7 +1,9 @@
 # imports
 from .gcdm import main as gcdm
 # from .ucdm import main as ucdm
+from .prodmask2ara_convert import main as prodmask2ara_convert
 from ...global_imports.solaris_opcodes import *
+
 
 # main func
 def main(
@@ -27,9 +29,11 @@ def main(
     # performing gcdm computation
     gcdm_ta = gcdm(nrbdic, combpolboo, plotboo)
 
+    # seperating output into nested array of layers
+    gcdm_tl2a = prodmask2ara_convert(gcdm_ta)
+
     # performing cloud logic
-    '''update here after mplnet visualisation'''
-    cloud_d[CLOUDMASKKEY] = gcdm_ta
+    cloud_d[CLOUDMASKKEY] = gcdm_tl2a
 
     return cloud_d
 
