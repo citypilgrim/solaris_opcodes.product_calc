@@ -78,68 +78,16 @@ def main(
         for tra in np.hsplit(rayleigh_tara, rayleigh_tara.shape[1])
     ]
 
+
+    # work_tra = NRB_tra/betamprime_tra
+    work_tra = SNR_tra
+
     # getting products from extended GCDM
     gcdm_ta = gcdm_extended(
         r_trm, z_tra, setz_a, setzind_ta,
-        SNR_tra,
+        work_tra,
         plotboo=False,
     )
-
-    # processing the product
-
-
-    # plot feature
-    if plotboo:
-        fig, (ax, ax1) = plt.subplots(ncols=2, sharey=True)
-        yupperlim = z_tra.max()
-
-        for i, z_ra in enumerate(z_tra):
-            if i != 935:
-                continue
-
-            # indexing commonly used arrays
-            gcdm_rm = gcdm_trm[i]
-            amin, amax = amin_ta[i], amax_ta[i]
-            dzCRprime_ra = dzCRprime_tra[i][gcdm_rm]
-            oz_ra = np.copy(z_ra)
-            z_ra = z_ra[gcdm_rm]
-
-            # plotting first derivative
-            dzCRprime_plot = ax.plot(dzCRprime_ra, z_ra)
-            pltcolor = dzCRprime_plot[0].get_color()
-
-            ## plotting thresholds
-            ax.vlines([amin, amax], ymin=0, ymax=yupperlim,
-                      color=pltcolor, linestyle='--')
-
-            ## plotting clouds
-            gcdm_a = gcdm_ta[i]
-            for j, tup in enumerate(gcdm_a):
-                if j >= len(_cloudmarker_l):
-                    j %= len(_cloudmarker_l)
-
-                cldbotind, cldtopind = tup
-                ax.scatter(amax, z_ra[cldbotind],
-                           color=pltcolor, s=100,
-                           marker=_cloudmarker_l[j], edgecolor='k')
-                try:
-                    ax.scatter(amin, z_ra[cldtopind],
-                               color=pltcolor, s=100,
-                               marker=_cloudmarker_l[j], edgecolor='k')
-                except IndexError:
-                    # for cloud tops that cannot be found
-                    # i.e. cldtopind == np.nan
-                    pass
-
-
-            # plotting zero derivative
-            ax1.plot(CRprime_tra[i], oz_ra)
-            # ax1.vlines([bmax_ta[i]], ymin=0, ymax=yupperlim,
-            #            color=pltcolor, linestyle='--')
-
-        ax.set_ylim([0, 5])
-        ax1.set_xscale('log')
-        plt.show()
 
 
     # returning
@@ -148,30 +96,5 @@ def main(
 
 
 if __name__ == '__main__':
-    from ...nrb_calc import main as nrb_calc
-    from ....file_readwrite import smmpl_reader
-
-    '''
-    Good profiles to observe
-
-    20200922
-
-    139
-    183
-    189
-    269
-    309
-    380
-    416
-    944
-    1032
-    '''
-
-    nrb_d = nrb_calc(
-        'smmpl_E2', smmpl_reader,
-        # '/home/tianli/SOLAR_EMA_project/data/smmpl_E2/20200805/202008050003.mpl',
-        starttime=LOCTIMEFN('202009220000', UTCINFO),
-        endtime=LOCTIMEFN('202009230000', UTCINFO),
-    )
-
-    main(nrb_d, combpolboo=True, plotboo=True)
+    '''refer to the individual gcdm protocols for plotting'''
+    pass

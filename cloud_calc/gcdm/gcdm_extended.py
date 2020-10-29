@@ -9,7 +9,6 @@ from .gradient_calc import main as gradient_calc
 from .mask_out import main as mask_out
 from .noise_filter import main as noise_filter
 from ...nrb_calc import chunk_operate
-from ...constant_profiles import rayleigh_gen
 from ....global_imports.solaris_opcodes import *
 
 
@@ -105,7 +104,7 @@ def main(
         yupperlim = z_tra.max()
 
         for i, z_ra in enumerate(z_tra):
-            if i != 935:
+            if i != 0:
                 continue
 
             # indexing commonly used arrays
@@ -155,6 +154,7 @@ def main(
 if __name__ == '__main__':
     from ...nrb_calc import main as nrb_calc
     from ....file_readwrite import smmpl_reader
+    from ...constant_profiles import rayleigh_gen
 
     '''
     Good profiles to observe
@@ -172,9 +172,8 @@ if __name__ == '__main__':
 
     nrb_d = nrb_calc(
         'smmpl_E2', smmpl_reader,
-        # '/home/tianli/SOLAR_EMA_project/data/smmpl_E2/20200805/202008050003.mpl',
-        starttime=LOCTIMEFN('202009220000', UTCINFO),
-        endtime=LOCTIMEFN('202009230000', UTCINFO),
+        starttime=LOCTIMEFN('202010290000', UTCINFO),
+        endtime=LOCTIMEFN('202010290600', UTCINFO),
     )
 
     NRB_tra = nrb_d['NRB_tra']
@@ -184,8 +183,22 @@ if __name__ == '__main__':
     setzind_ta = nrb_d['DeltNbinpadthetaind_ta']
     z_tra = nrb_d['z_tra']
 
+    # retreiving molecular profile
+    rayleigh_aara = np.array([
+        rayleigh_gen(*setz) for setz in setz_a
+    ])
+    rayleigh_tara = np.array([
+        rayleigh_aara[setzind] for setzind in setzind_ta
+    ])
+    _, _, betamprime_tra, _ = [
+        tra[:, 0, :]
+        for tra in np.hsplit(rayleigh_tara, rayleigh_tara.shape[1])
+    ]
+
+    work_tra = SNR_tra
+
     main(
         r_trm, z_tra, setz_a, setzind_ta,
-        SNR_tra,
+        work_tra,
         plotboo=True
     )
