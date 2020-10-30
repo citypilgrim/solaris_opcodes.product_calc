@@ -34,6 +34,8 @@ def main(
 
     # performing cloud logic
     cloud_d[CLOUDMASKKEY] = gcdm_tl2a
+    '''remove thin cloud layers'''
+    '''group near by clouds'''
 
     return cloud_d
 

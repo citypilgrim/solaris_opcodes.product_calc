@@ -50,7 +50,7 @@ def main(
 
     # handling invalid values
     ret_tra = lowpass2_tra
-    ret_tra[ret_tra < 0] = 0
+    # ret_tra[ret_tra < 0] = 0
 
     # changing setz
     setz[1] = z_ra.shape[0]  # number of bins has changed

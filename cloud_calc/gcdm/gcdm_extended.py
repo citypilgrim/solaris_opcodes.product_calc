@@ -1,4 +1,5 @@
 # imports
+from copy import deepcopy
 import multiprocessing as mp
 
 import matplotlib.pyplot as plt
@@ -6,6 +7,7 @@ import numpy as np
 
 from .gcdm_algo import main as gcdm_algo
 from .gradient_calc import main as gradient_calc
+from .integral_check import main as integral_check
 from .mask_out import main as mask_out
 from .noise_filter import main as noise_filter
 from ...nrb_calc import chunk_operate
@@ -34,8 +36,8 @@ _cloudmarker_l = [
 @announcer
 def main(
         r_trm, z_tra, setz_a, setzind_ta,
-        SNR_tra,
-        plotboo=False,
+        work_tra,
+        plotboo=False, plotind=0
 ):
     '''
     Extended gradient-based cloud detection. Using filters to smoothen out the
@@ -48,18 +50,21 @@ def main(
                        altitude arrays in z_tra
         setzind_ta (np.ndarray): index of setz_a for the corresponding time axis
                                  in all 'tra' arrays
-        SNR_tra (np.ndarray): Signal to noise
+        work_tra (np.ndarray): working array
         plotboo (boolean): whether or not to plot computed results
+        plotind (int): index in time axis to plot out
     Return
         gcdm_ta (np.ndarray): each timestamp contains a list of tuples for the clouds
     '''
     # working arrays being masked
-    SNR_tra, z_tra, r_trm, setz_a = chunk_operate(
-        SNR_tra, z_tra, r_trm, setz_a, setzind_ta, mask_out, procnum=GCDMPROCNUM
+    work_tra, z_tra, r_trm, setz_a = chunk_operate(
+        work_tra, z_tra, r_trm, setz_a, setzind_ta, mask_out, procnum=GCDMPROCNUM
     )
-    work_tra = SNR_tra
-    owork_tra = SNR_tra
-    gcdm_trm = r_trm
+    owork_tra = deepcopy(work_tra)
+    gcdm_trm = r_trm \
+        # * (z_tra > 10)
+        # * (z_tra < 5)
+        # * (4 < z_tra) * (z_tra < 10)
 
     # filtering
     work_tra, _, _, _, = chunk_operate(
@@ -77,22 +82,64 @@ def main(
     )
 
     # computing thresholds
-    work0_tra = np.copy(dzwork_tra).flatten()
+    # work0_tra = np.copy(dzwork_tra).flatten()
+    # work0_tra[work0_tra < 0] = 0  # handling invalid values
+    # work0_tra[~(gcdm_trm.flatten())] = np.nan  # set nan to ignore in average
+    # work0_tra = work0_tra.reshape(*(gcdm_trm.shape))
+    # barwork_ta = np.nanmean(work0_tra, axis=1)
+    # amax_ta = KEMPIRICAL * barwork_ta
+    # amin_ta = (1 - KEMPIRICAL) * barwork_ta
+
+    # computing threshold using moving average
+    windowsize = 300
+    import scipy.signal as sig
+    work0_tra = np.nan_to_num(work_tra)
     work0_tra[work0_tra < 0] = 0  # handling invalid values
-    work0_tra[~(gcdm_trm.flatten())] = np.nan  # set nan to ignore in average
-    work0_tra = work0_tra.reshape(*(gcdm_trm.shape))
-    barwork_ta = np.nanmean(work0_tra, axis=1)
-    amax_ta = KEMPIRICAL * barwork_ta
-    amin_ta = (1 - KEMPIRICAL) * barwork_ta
+    barwork_tra = sig.convolve(
+        work0_tra,
+        np.ones((1, windowsize)), mode='same'
+    )/windowsize
+    ## accomodating for start of window
+    work0_tra = np.nan_to_num(dzwork_tra)
+    work0_tra[work0_tra < 0] = 0  # handling invalid values
+    sbarwork_ta = np.mean(work0_tra[:, :windowsize], axis=1)
+    barwork_tra[:, :windowsize] = sbarwork_ta[:, None]
+    ## computing threshold
+    amax_tra = KEMPIRICAL * barwork_tra
+    amin_tra = (1 - KEMPIRICAL) * barwork_tra
+
 
     # finding clouds applying algorithm on each axis
     pool = mp.Pool(processes=GCDMPROCNUM)
     gcdm_ta = np.array([
         pool.apply(
             gcdm_algo,
-            args=(dzwork_ra, z_tra[i], gcdm_trm[i], amin_ta[i], amax_ta[i])
+            # args=(dzwork_ra, z_tra[i], gcdm_trm[i], amin_ta[i], amax_ta[i])
+            args=(dzwork_ra, z_tra[i], gcdm_trm[i], amin_tra[i], amax_tra[i])
         )
         for i, dzwork_ra in enumerate(dzwork_tra)
+    ])
+    pool.close()
+    pool.join()
+
+    d2zwork_tra, _, _, _ = chunk_operate(
+        dzwork_tra, z_tra, r_trm, setz_a, setzind_ta,
+        gradient_calc, procnum=GCDMPROCNUM
+    )
+
+    # performing check on gcdm_ta based on integral threshold
+    integral_threshold = 0.3
+    pool = mp.Pool(processes=GCDMPROCNUM)
+    gcdm_ta = np.array([
+        pool.apply(
+            integral_check,
+            args=(
+                owork_ra, work_tra[i],
+                z_tra[i], gcdm_trm[i],
+                gcdm_ta[i],
+                integral_threshold
+            ))
+        for i, owork_ra in enumerate(owork_tra)
     ])
     pool.close()
     pool.join()
@@ -103,52 +150,65 @@ def main(
         fig, (ax, ax1) = plt.subplots(ncols=2, sharey=True)
         yupperlim = z_tra.max()
 
-        for i, z_ra in enumerate(z_tra):
-            if i != 0:
-                continue
+        i = plotind
 
-            # indexing commonly used arrays
-            gcdm_rm = gcdm_trm[i]
-            amin, amax = amin_ta[i], amax_ta[i]
-            dzwork_ra = dzwork_tra[i][gcdm_rm]
-            oz_ra = np.copy(z_ra)
-            z_ra = z_ra[gcdm_rm]
+        # indexing commonly used arrays
+        z_ra = z_tra[i]
+        gcdm_rm = gcdm_trm[i]
+        dzwork_ra = dzwork_tra[i][gcdm_rm]
+        oz_ra = np.copy(z_ra)
+        z_ra = z_ra[gcdm_rm]
+        # amin, amax = amin_ta[i], amax_ta[i]
+        amin_ra, amax_ra = amin_tra[i], amax_tra[i]
 
-            # plotting first derivative
-            dzwork_plot = ax.plot(dzwork_ra, z_ra)
-            pltcolor = dzwork_plot[0].get_color()
+        # plotting zero derivative
+        ax1.plot(owork_tra[i], oz_ra)
+        ax1.plot(work_tra[i], oz_ra)
 
-            ## plotting thresholds
-            ax.vlines([amin, amax], ymin=0, ymax=yupperlim,
-                      color=pltcolor, linestyle='--')
+        # plotting first derivative
+        dzwork_plot = ax.plot(dzwork_ra, z_ra)
+        pltcolor = dzwork_plot[0].get_color()
 
-            ## plotting clouds
-            gcdm_a = gcdm_ta[i]
-            for j, cld in enumerate(gcdm_a):
-                if j >= len(_cloudmarker_l):
-                    j %= len(_cloudmarker_l)
+        # plotting second derivative
+        # scale = 20
+        # ax.plot(d2zwork_tra[i][gcdm_rm]/scale, z_ra)
 
-                cldbot, cldtop = cld
-                ax.scatter(amax, cldbot,
-                           color=pltcolor, s=100,
-                           marker=_cloudmarker_l[j], edgecolor='k')
-                ax.scatter(amin, cldtop,
-                           color=pltcolor, s=100,
-                           marker=_cloudmarker_l[j], edgecolor='k')
 
-            # plotting zero derivative
-            ax1.plot(owork_tra[i], oz_ra)
-            ax1.plot(work_tra[i], oz_ra)
+        ## plotting thresholds
+        # ax.vlines([amin, amax], ymin=0, ymax=yupperlim,
+        #           color=pltcolor, linestyle='--')
+        ax.plot(amax_ra, z_ra, color=pltcolor, linestyle='--')
+        ax.plot(amin_ra, z_ra, color=pltcolor, linestyle='--')
 
-        # ax.set_ylim([0, 5])
-        # ax1.set_xscale('log')
+        ## plotting clouds
+        gcdm_a = gcdm_ta[i]
+        for j, cld in enumerate(gcdm_a):
+            if j >= len(_cloudmarker_l):
+                j %= len(_cloudmarker_l)
+
+            cldbot, cldtop = cld
+            cldbotind = np.argmax(z_ra >= cldbot)
+            if np.isnan(cldtop):
+                cldtopind = None
+            else:
+                cldtopind = np.argmax(z_ra >= cldtop)
+
+            ax.scatter(amax_ra[cldbotind], cldbot,
+                       color=pltcolor, s=100,
+                       marker=_cloudmarker_l[j], edgecolor='k')
+            ax.scatter(amin_ra[cldtopind], cldtop,
+                       color=pltcolor, s=100,
+                       marker=_cloudmarker_l[j], edgecolor='k')
+            # ax.scatter(amax, cldbot,
+            #            color=pltcolor, s=100,
+            #            marker=_cloudmarker_l[j], edgecolor='k')
+            # ax.scatter(amin, cldtop,
+            #            color=pltcolor, s=100,
+            #            marker=_cloudmarker_l[j], edgecolor='k')
+
         plt.show()
 
-
     return gcdm_ta
-
-
-
 
 
 if __name__ == '__main__':
@@ -173,9 +233,12 @@ if __name__ == '__main__':
     nrb_d = nrb_calc(
         'smmpl_E2', smmpl_reader,
         starttime=LOCTIMEFN('202010290000', UTCINFO),
-        endtime=LOCTIMEFN('202010290600', UTCINFO),
+        endtime=LOCTIMEFN('202010291200', UTCINFO),
+        # starttime=LOCTIMEFN('202009220000', UTCINFO),
+        # endtime=LOCTIMEFN('202009230000', UTCINFO),
     )
 
+    ts_ta = nrb_d['Timestamp']
     NRB_tra = nrb_d['NRB_tra']
     SNR_tra = nrb_d['SNR_tra']
     r_trm = nrb_d['r_trm']
@@ -195,10 +258,15 @@ if __name__ == '__main__':
         for tra in np.hsplit(rayleigh_tara, rayleigh_tara.shape[1])
     ]
 
-    work_tra = SNR_tra
+    work_tra = NRB_tra/betamprime_tra
+    # work_tra = SNR_tra
 
+    # plotind = 0
+    plotind = 2500
+    # plotind = 2000
+    print(ts_ta[plotind])
     main(
         r_trm, z_tra, setz_a, setzind_ta,
         work_tra,
-        plotboo=True
+        plotboo=True, plotind=plotind
     )

@@ -20,7 +20,7 @@ def main(
         dzCRprime_ra (np.ndarray): first derivative of CRprime, refer to paper
         z_ra (np.ndarray): corresponding altitude array
         gcdm_rm (np.ndarray): mask for GCDM
-        amin/max (float): threshold values for GCDM
+        amin/max (float or np.ndarray): threshold values for GCDM along range axis
 
     Return
         gcdm_a (np.ndarray): nested array. Each inner array signifies a cloud.
@@ -32,6 +32,11 @@ def main(
     '''
     dzCRprime_ra = dzCRprime_ra[gcdm_rm]
     z_ra = z_ra[gcdm_rm]
+    try:
+        amin = amin[gcdm_rm]
+        amax = amax[gcdm_rm]
+    except IndexError:
+        pass
 
     # finding cloud bases
     amaxcross_rm = (dzCRprime_ra >= amax)
@@ -52,11 +57,11 @@ def main(
     cloudtopz_a = np.array([])
     for cloudbotind in cloudbotind_a:
 
-        crossaminboo_a = dzCRprime_ra[cloudbotind:] < amin
+        crossaminboo_a = (dzCRprime_ra < amin)[cloudbotind:]
         if crossaminboo_a.any():  # array val has decreased
             crossaminind = np.argmax(crossaminboo_a) + cloudbotind
 
-            crossaminboo_a = dzCRprime_ra[crossaminind:] > amin
+            crossaminboo_a = (dzCRprime_ra > amin)[crossaminind:]
             if crossaminboo_a.any():
                 cloudtopind = np.argmax(crossaminboo_a) + crossaminind
                 cloudtopz = z_ra[cloudtopind]

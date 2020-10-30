@@ -38,7 +38,7 @@ def main(
         r_trm, z_tra, setz_a, setzind_ta,
         SNR_tra, NRB_tra,
         betamprime_tra,
-        plotboo=False,
+        plotboo=False, plotind=0
 ):
     '''
     Gradient-based Cloud Detection (GCDM) according to Lewis et. al 2016.
@@ -57,6 +57,7 @@ def main(
         NRB_tra (np.ndarray): normalised back scatter
         betamprime_tra (np.ndarray): attenuated backscatter for molecular profile
         plotboo (boolean): whether or not to plot computed results
+        plotind (int): index in time axis to plot out
     '''
     # working arrays being masked
     oz_tra, or_trm, osetz_a = z_tra, r_trm, setz_a  # 'o' stands for original
@@ -109,43 +110,40 @@ def main(
         fig, (ax, ax1) = plt.subplots(ncols=2, sharey=True)
         yupperlim = z_tra.max()
 
-        for i, z_ra in enumerate(z_tra):
-            if i != 0:
-                continue
+        i = plotind
 
-            # indexing commonly used arrays
-            gcdm_rm = gcdm_trm[i]
-            amin, amax = amin_ta[i], amax_ta[i]
-            dzCRprime_ra = dzCRprime_tra[i][gcdm_rm]
-            oz_ra = np.copy(z_ra)
-            z_ra = z_ra[gcdm_rm]
+        # indexing commonly used arrays
+        z_ra = z_tra[i]
+        gcdm_rm = gcdm_trm[i]
+        amin, amax = amin_ta[i], amax_ta[i]
+        dzCRprime_ra = dzCRprime_tra[i][gcdm_rm]
+        oz_ra = np.copy(z_ra)
+        z_ra = z_ra[gcdm_rm]
 
-            # plotting first derivative
-            dzCRprime_plot = ax.plot(dzCRprime_ra, z_ra)
-            pltcolor = dzCRprime_plot[0].get_color()
+        # plotting first derivative
+        dzCRprime_plot = ax.plot(dzCRprime_ra, z_ra)
+        pltcolor = dzCRprime_plot[0].get_color()
 
-            ## plotting thresholds
-            ax.vlines([amin, amax], ymin=0, ymax=yupperlim,
-                      color=pltcolor, linestyle='--')
+        ## plotting thresholds
+        ax.vlines([amin, amax], ymin=0, ymax=yupperlim,
+                  color=pltcolor, linestyle='--')
 
-            ## plotting clouds
-            gcdm_a = gcdm_ta[i]
-            for j, cld in enumerate(gcdm_a):
-                if j >= len(_cloudmarker_l):
-                    j %= len(_cloudmarker_l)
+        ## plotting clouds
+        gcdm_a = gcdm_ta[i]
+        for j, cld in enumerate(gcdm_a):
+            if j >= len(_cloudmarker_l):
+                j %= len(_cloudmarker_l)
 
-                cldbot, cldtop = cld
-                ax.scatter(amax, cldbot,
-                           color=pltcolor, s=100,
-                           marker=_cloudmarker_l[j], edgecolor='k')
-                ax.scatter(amin, cldtop,
-                           color=pltcolor, s=100,
-                           marker=_cloudmarker_l[j], edgecolor='k')
+            cldbot, cldtop = cld
+            ax.scatter(amax, cldbot,
+                       color=pltcolor, s=100,
+                       marker=_cloudmarker_l[j], edgecolor='k')
+            ax.scatter(amin, cldtop,
+                       color=pltcolor, s=100,
+                       marker=_cloudmarker_l[j], edgecolor='k')
 
-            # plotting zero derivative
-            ax1.plot(CRprime_tra[i], oz_ra)
-            # ax1.vlines([bmax_ta[i]], ymin=0, ymax=yupperlim,
-            #            color=pltcolor, linestyle='--')
+        # plotting zero derivative
+        ax1.plot(CRprime_tra[i], oz_ra)
 
         ax.set_ylim([0, 5])
         ax1.set_xscale('log')
@@ -161,29 +159,24 @@ if __name__ == '__main__':
     from ...constant_profiles import rayleigh_gen
     from ...nrb_calc import main as nrb_calc
     from ....file_readwrite import smmpl_reader
-
     '''
     Good profiles to observe
 
     20200922
 
-    139
-    183
-    189
-    269
-    309
-    380
-    416
-    944
-    1032
+    136
+    269                         # very low cloud has to be handled with GCDM
+    306
+    375                         # double peaks
+    423                         # double peak
+    935                         # very sharp peak at low height, cannot see
+    1030                        # noisy peak
     '''
 
     nrb_d = nrb_calc(
         'smmpl_E2', smmpl_reader,
-        # '/home/tianli/SOLAR_EMA_project/data/smmpl_E2/20200805/202008050003.mpl',
         starttime=LOCTIMEFN('202009220000', UTCINFO),
-        endtime=LOCTIMEFN('202009220100', UTCINFO),
-        # endtime=LOCTIMEFN('202009230000', UTCINFO),
+        endtime=LOCTIMEFN('202009230000', UTCINFO),
     )
 
     NRB_tra = nrb_d['NRB_tra']
@@ -207,7 +200,6 @@ if __name__ == '__main__':
 
     main(
         r_trm, z_tra, setz_a, setzind_ta,
-        SNR_tra, NRB_tra,
-        betamprime_tra,
-        plotboo=True
+        SNR_tra, NRB_tra, betamprime_tra,
+        plotboo=True, plotind=1030
     )
