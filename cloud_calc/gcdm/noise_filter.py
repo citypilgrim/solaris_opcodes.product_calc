@@ -32,7 +32,7 @@ def main(
     z_ra = z_ra[r_rm]
 
     # low pass filter
-    T = z_ra[1] - z_ra[0]
+    T = np.abs(z_ra[1] - z_ra[0])
     fs = 1/T          # sample rate, [km^-1]
     nyq = 0.5 * fs              # Nyquist Frequency
     lowpass1_tra = work_tra
