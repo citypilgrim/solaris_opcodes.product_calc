@@ -46,7 +46,7 @@ def main(
         iz_ra = z_ra[cldbotind:cldtopind]
 
         iowork_ra[iowork_ra<0] = 0
-        # iwork_ra[iwork_ra<0] = 0
+        iwork_ra[iwork_ra<0] = 0
 
         # integrating
         oworkint = simps(iowork_ra, iz_ra)

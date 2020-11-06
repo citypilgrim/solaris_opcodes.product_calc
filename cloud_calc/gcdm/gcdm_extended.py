@@ -4,6 +4,7 @@ import multiprocessing as mp
 
 import matplotlib.pyplot as plt
 import numpy as np
+import scipy.signal as sig
 
 from .gcdm_algo import main as gcdm_algo
 from .gradient_calc import main as gradient_calc
@@ -61,10 +62,7 @@ def main(
         work_tra, z_tra, r_trm, setz_a, setzind_ta, mask_out, procnum=GCDMPROCNUM
     )
     owork_tra = deepcopy(work_tra)
-    gcdm_trm = r_trm \
-        # * (z_tra > 10)
-        # * (z_tra < 5)
-        # * (4 < z_tra) * (z_tra < 10)
+    gcdm_trm = r_trm
 
     # filtering
     work_tra, _, _, _, = chunk_operate(
@@ -81,29 +79,18 @@ def main(
         gradient_calc, procnum=GCDMPROCNUM
     )
 
-    # computing thresholds
-    # work0_tra = np.copy(dzwork_tra).flatten()
-    # work0_tra[work0_tra < 0] = 0  # handling invalid values
-    # work0_tra[~(gcdm_trm.flatten())] = np.nan  # set nan to ignore in average
-    # work0_tra = work0_tra.reshape(*(gcdm_trm.shape))
-    # barwork_ta = np.nanmean(work0_tra, axis=1)
-    # amax_ta = KEMPIRICAL * barwork_ta
-    # amin_ta = (1 - KEMPIRICAL) * barwork_ta
-
     # computing threshold using moving average
-    windowsize = 300
-    import scipy.signal as sig
     work0_tra = np.nan_to_num(work_tra)
     work0_tra[work0_tra < 0] = 0  # handling invalid values
     barwork_tra = sig.convolve(
         work0_tra,
-        np.ones((1, windowsize)), mode='same'
-    )/windowsize
+        np.ones((1, GCDMTHRESWINDOW)), mode='same'
+    )/GCDMTHRESWINDOW
     ## accomodating for start of window
     work0_tra = np.nan_to_num(dzwork_tra)
     work0_tra[work0_tra < 0] = 0  # handling invalid values
-    sbarwork_ta = np.mean(work0_tra[:, :windowsize], axis=1)
-    barwork_tra[:, :windowsize] = sbarwork_ta[:, None]
+    sbarwork_ta = np.mean(work0_tra[:, :GCDMTHRESWINDOW], axis=1)
+    barwork_tra[:, :GCDMTHRESWINDOW] = sbarwork_ta[:, None]
     ## computing threshold
     amax_tra = KEMPIRICAL * barwork_tra
     amin_tra = (1 - KEMPIRICAL) * barwork_tra
@@ -114,7 +101,6 @@ def main(
     gcdm_ta = np.array([
         pool.apply(
             gcdm_algo,
-            # args=(dzwork_ra, z_tra[i], gcdm_trm[i], amin_ta[i], amax_ta[i])
             args=(dzwork_ra, z_tra[i], gcdm_trm[i], amin_tra[i], amax_tra[i])
         )
         for i, dzwork_ra in enumerate(dzwork_tra)
@@ -128,7 +114,6 @@ def main(
     )
 
     # performing check on gcdm_ta based on integral threshold
-    integral_threshold = 0.3
     pool = mp.Pool(processes=GCDMPROCNUM)
     gcdm_ta = np.array([
         pool.apply(
@@ -137,7 +122,7 @@ def main(
                 owork_ra, work_tra[i],
                 z_tra[i], gcdm_trm[i],
                 gcdm_ta[i],
-                integral_threshold
+                GCDMINTEGRALTHRES
             ))
         for i, owork_ra in enumerate(owork_tra)
     ])
@@ -169,14 +154,7 @@ def main(
         dzwork_plot = ax.plot(dzwork_ra, z_ra)
         pltcolor = dzwork_plot[0].get_color()
 
-        # plotting second derivative
-        # scale = 20
-        # ax.plot(d2zwork_tra[i][gcdm_rm]/scale, z_ra)
-
-
-        ## plotting thresholds
-        # ax.vlines([amin, amax], ymin=0, ymax=yupperlim,
-        #           color=pltcolor, linestyle='--')
+        # plotting thresholds
         ax.plot(amax_ra, z_ra, color=pltcolor, linestyle='--')
         ax.plot(amin_ra, z_ra, color=pltcolor, linestyle='--')
 
@@ -188,23 +166,14 @@ def main(
 
             cldbot, cldtop = cld
             cldbotind = np.argmax(z_ra >= cldbot)
-            if np.isnan(cldtop):
-                cldtopind = None
-            else:
-                cldtopind = np.argmax(z_ra >= cldtop)
-
             ax.scatter(amax_ra[cldbotind], cldbot,
                        color=pltcolor, s=100,
                        marker=_cloudmarker_l[j], edgecolor='k')
-            ax.scatter(amin_ra[cldtopind], cldtop,
-                       color=pltcolor, s=100,
-                       marker=_cloudmarker_l[j], edgecolor='k')
-            # ax.scatter(amax, cldbot,
-            #            color=pltcolor, s=100,
-            #            marker=_cloudmarker_l[j], edgecolor='k')
-            # ax.scatter(amin, cldtop,
-            #            color=pltcolor, s=100,
-            #            marker=_cloudmarker_l[j], edgecolor='k')
+            if not np.isnan(cldtop):
+                cldtopind = np.argmax(z_ra >= cldtop)
+                ax.scatter(amin_ra[cldtopind], cldtop,
+                           color=pltcolor, s=100,
+                           marker=_cloudmarker_l[j], edgecolor='k')
 
         plt.show()
 
@@ -232,10 +201,10 @@ if __name__ == '__main__':
 
     nrb_d = nrb_calc(
         'smmpl_E2', smmpl_reader,
-        starttime=LOCTIMEFN('202010290000', UTCINFO),
-        endtime=LOCTIMEFN('202010291200', UTCINFO),
-        # starttime=LOCTIMEFN('202009220000', UTCINFO),
-        # endtime=LOCTIMEFN('202009230000', UTCINFO),
+        # starttime=LOCTIMEFN('202010290000', UTCINFO),
+        # endtime=LOCTIMEFN('202010291200', UTCINFO),
+        starttime=LOCTIMEFN('202009220000', UTCINFO),
+        endtime=LOCTIMEFN('202009230000', UTCINFO),
     )
 
     ts_ta = nrb_d['Timestamp']
@@ -261,8 +230,8 @@ if __name__ == '__main__':
     work_tra = NRB_tra/betamprime_tra
     # work_tra = SNR_tra
 
-    # plotind = 0
-    plotind = 2500
+    plotind = 940
+    # plotind = 2500
     # plotind = 2000
     print(ts_ta[plotind])
     main(
