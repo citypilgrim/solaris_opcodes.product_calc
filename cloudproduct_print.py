@@ -17,7 +17,7 @@ def main(
     long_a = product_d[LONGITUDE]
     cloud_d = product_d[CLOUDKEY]
 
-    cloudbottom_a = cloud_d[CLOUDBOTTOMKEY]
+    cloudbottom_a = cloud_d[CLOUDBOTTOMKEY]  # depreciated
 
     for i, lat in enumerate(lat_a):
         print(lat_a[i], long_a[i], cloudbottom_a[i])
