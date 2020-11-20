@@ -23,8 +23,7 @@ def main(
         plotboo (boolean): whether or not to plot computed results
     Return
         cloud_d (dict):
-            CLOUDMASKKEY (np.ndarray): each timestamp contains a list of tuples for the
-                                       clouds
+            CLOUDMASKKEY (np.ndarray): (time,  max # cld layers, 2(cld bot, cld top))
     '''
     cloud_d = {}
 
