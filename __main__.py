@@ -19,7 +19,6 @@ def main(
 
         pixelsize=None, gridlen=None,
         latitude=None, longitude=None, elevation=None,
-
 ):
     '''
     For a given input time, will return a dictionary with all data concerning
@@ -53,6 +52,10 @@ def main(
         elevation (float): [m] height of lidar from MSL
 
     Return
+        nrb_d (dict):
+            ..all keys can be found in .nrb_calc.__main__,
+            ..might also include added keys for newly computed arrays
+
         product_d (dict):
             PRODUCTTIMESTAMPKEY (array like): contains timestamps for grid
             PRODUCTARRAYSKEY (dict): containing everything in nrb_d
@@ -82,16 +85,14 @@ def main(
     )
 
     # geolocating products
-    '''uncomment after implementing product_gelocate'''
-    # product_d[PRODUCTLATKEY], product_d[PRODUCTLONGKEY] = product_geolocate(
-    #         product_d,
-    #         pixelsize, gridlen,
-    #         latitude, longitude, elevation
-    #     )
+    product_d = product_geolocate(
+        pixelsize, gridlen,
+        latitude, longitude, elevation,
+
+        product_d,
+        producttype_l=[
+            CLOUDKEY
+        ]
+    )
 
     return product_d
-
-
-# running
-if __name__ == '__main__':
-    pass

@@ -5,10 +5,12 @@ from ..global_imports.solaris_opcodes import *
 @verbose
 @announcer
 def main(
-        product_d
+        product_d,
 ):
     '''
     generates formatted cloud products from the product_calc.__main__
+    alot of hardcoding in this script to accomodate reading the data out of
+    product_calc
 
     Parameters
         product_d (dict): output from product_calc.__main__

@@ -23,7 +23,8 @@ def main(
         plotboo (boolean): whether or not to plot computed results
     Return
         cloud_d (dict):
-            CLOUDMASKKEY (np.ndarray): (time,  max # cld layers, 2(cld bot, cld top))
+            MASKKEY (np.ndarray):
+                    (time,  max # cld layers, 3(cld bot, cld peak, cld top))
     '''
     cloud_d = {}
 
@@ -48,7 +49,7 @@ def main(
     invalidlayer_lm = ~(invalidlayer_tl3m.all(axis=(0, 2)))
     cld_tl3a = cld_tl3a[:, invalidlayer_lm, :]
 
-    cloud_d[CLOUDMASKKEY] = cld_tl3a
+    cloud_d[MASKKEY] = cld_tl3a
 
     return cloud_d
 
