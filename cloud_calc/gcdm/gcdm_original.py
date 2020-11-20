@@ -97,7 +97,10 @@ def main(
     gcdm_ta = np.array([
         _pool.apply(
             gcdm_algo,
-            args=(dzCRprime_ra, z_tra[i], gcdm_trm[i], amin_ta[i], amax_ta[i])
+            args=(
+                CRprime_tra[i], dzCRprime_ra,
+                z_tra[i], gcdm_trm[i],
+                amin_ta[i], amax_ta[i])
         )
         for i, dzCRprime_ra in enumerate(dzCRprime_tra)
     ])
@@ -134,8 +137,11 @@ def main(
             if j >= len(_cloudmarker_l):
                 j %= len(_cloudmarker_l)
 
-            cldbot, cldtop = cld
+            cldbot, cldpeak, cldtop = cld
             ax.scatter(amax, cldbot,
+                       color=pltcolor, s=100,
+                       marker=_cloudmarker_l[j], edgecolor='k')
+            ax.scatter(0, cldpeak,
                        color=pltcolor, s=100,
                        marker=_cloudmarker_l[j], edgecolor='k')
             ax.scatter(amin, cldtop,

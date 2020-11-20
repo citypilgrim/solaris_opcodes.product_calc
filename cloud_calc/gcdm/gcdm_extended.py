@@ -95,13 +95,15 @@ def main(
     amax_tra = KEMPIRICAL * barwork_tra
     amin_tra = (1 - KEMPIRICAL) * barwork_tra
 
-
     # finding clouds applying algorithm on each axis
     pool = mp.Pool(processes=GCDMPROCNUM)
     gcdm_ta = np.array([
         pool.apply(
             gcdm_algo,
-            args=(dzwork_ra, z_tra[i], gcdm_trm[i], amin_tra[i], amax_tra[i])
+            args=(
+                work_tra[i], dzwork_ra,
+                z_tra[i], gcdm_trm[i],
+                amin_tra[i], amax_tra[i])
         )
         for i, dzwork_ra in enumerate(dzwork_tra)
     ])
@@ -164,9 +166,12 @@ def main(
             if j >= len(_cloudmarker_l):
                 j %= len(_cloudmarker_l)
 
-            cldbot, cldtop = cld
+            cldbot, cldpeak, cldtop = cld
             cldbotind = np.argmax(z_ra >= cldbot)
             ax.scatter(amax_ra[cldbotind], cldbot,
+                       color=pltcolor, s=100,
+                       marker=_cloudmarker_l[j], edgecolor='k')
+            ax.scatter(0, cldpeak,
                        color=pltcolor, s=100,
                        marker=_cloudmarker_l[j], edgecolor='k')
             if not np.isnan(cldtop):
@@ -195,8 +200,8 @@ if __name__ == '__main__':
     306
     375                         # double peaks
     423                         # double peak
-    935                         # very sharp peak at low height, cannot see
-    1030                        # noisy peak
+    940                         # very sharp peak at low height, cannot see
+    1032                        # noisy peak
     '''
 
     nrb_d = nrb_calc(

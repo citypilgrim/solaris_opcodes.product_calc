@@ -31,10 +31,10 @@ def main(
 
     # iterating through cloud layers
     rm_l = []
-    for i, gcdm_2a in enumerate(gcdm_a):
+    for i, gcdm_3a in enumerate(gcdm_a):
 
         # finding integral range
-        cldbot, cldtop = gcdm_2a
+        cldbot, _, cldtop = gcdm_3a
         cldbotind = np.argmax(z_ra >= cldbot)
         if np.isnan(cldtop):
             cldtopind = None

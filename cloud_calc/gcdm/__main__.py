@@ -78,7 +78,7 @@ def main(
         for tra in np.hsplit(rayleigh_tara, rayleigh_tara.shape[1])
     ]
 
-    work_tra = NRB_tra/betamprime_tra
+    work_tra = NRB_tra/betamprime_tra  # CRprime
 
     # getting products from extended GCDM
     gcdm_ta = gcdm_extended(

@@ -6,7 +6,8 @@ from ....global_imports.solaris_opcodes import *
 
 # main func
 def main(
-        dzCRprime_ra, z_ra, gcdm_rm,
+        CRprime_ra, dzCRprime_ra,
+        z_ra, gcdm_rm,
         amin, amax,
 ):
     '''
@@ -17,6 +18,7 @@ def main(
     utilizes multiprocessing to apply the gcdm algorithm on the time axis
 
     Parameters
+        CRprime_ra (np.ndarray): NRB normalised by molecular profile
         dzCRprime_ra (np.ndarray): first derivative of CRprime, refer to paper
         z_ra (np.ndarray): corresponding altitude array
         gcdm_rm (np.ndarray): mask for GCDM
@@ -24,14 +26,16 @@ def main(
 
     Return
         gcdm_a (np.ndarray): nested array. Each inner array signifies a cloud.
-                             inner array = [cld bot ind, cld top ind]
+                             inner array = [cld bot, cld top]
                              indices are taken w.r.t to dzCRprime_ta after applying
                              the gcdm mask
                              If the corresponding cloud top for a given cloud
                              bottom is not detected, np.nan is placed.
     '''
+    CRprime_ra = CRprime_ra[gcdm_rm]
     dzCRprime_ra = dzCRprime_ra[gcdm_rm]
     z_ra = z_ra[gcdm_rm]
+    lenz = z_ra.shape[0]
     try:
         amin = amin[gcdm_rm]
         amax = amax[gcdm_rm]
@@ -54,6 +58,7 @@ def main(
     cloudbotz_a = z_ra[cloudbotind_a]
 
     # finding cloud top
+    cloudtopind_a = np.array([])
     cloudtopz_a = np.array([])
     for cloudbotind in cloudbotind_a:
 
@@ -65,15 +70,27 @@ def main(
             if crossaminboo_a.any():
                 cloudtopind = np.argmax(crossaminboo_a) + crossaminind
                 cloudtopz = z_ra[cloudtopind]
-            else:
+            else:               # array val did not cross above amin
+                cloudtopind = lenz
                 cloudtopz = np.nan
 
         else:                   # array val did not decrease enough, cld top not found
             cloudtopz = np.nan
+            cloudtopind = lenz
 
         cloudtopz_a = np.append(cloudtopz_a, cloudtopz)
+        cloudtopind_a = np.append(cloudtopind_a, cloudtopind)
 
-    gcdm_a = np.stack([cloudbotz_a, cloudtopz_a], axis=1)
+    # finding cloud peak
+
+    ## creating rectangular array
+    cloudslice_zla = (np.arange(lenz)[:, None] >= cloudbotind_a) \
+        * (np.arange(lenz)[:, None] < cloudtopind_a)
+    cloudslice_zla = CRprime_ra[:, None] * cloudslice_zla
+    cloudpeakind_a = np.argmax(cloudslice_zla, axis=0)
+    cloudpeakz_a = z_ra[cloudpeakind_a]
+
+    gcdm_a = np.stack([cloudbotz_a, cloudpeakz_a, cloudtopz_a], axis=1)
     return gcdm_a
 
 
