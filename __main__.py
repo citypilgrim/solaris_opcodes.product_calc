@@ -96,3 +96,19 @@ def main(
     )
 
     return product_d
+
+
+# testing
+if __name__ == '__main__':
+    from ..file_readwrite import smmpl_reader
+
+    main(
+        'smmpl_E2', smmpl_reader,
+        starttime=LOCTIMEFN('202011250000', 0),
+        endtime=LOCTIMEFN('202011251200', 0),
+        angularoffset=140.6,
+
+        pixelsize=5, gridlen=3,
+        latitude=1.299119, longitude=103.771232,
+        elevation=70,
+    )
