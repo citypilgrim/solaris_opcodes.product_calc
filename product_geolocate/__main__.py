@@ -84,14 +84,14 @@ def main(
         prodmask_a3a = prodmask_a3a[invalidlayer_am]
         xprodmask_a3a = xprodmask_a3a[invalidlayer_am]
         yprodmask_a3a = yprodmask_a3a[invalidlayer_am]
-        prodmask_a23a = np.stack([xprodmask_a3a, yprodmask_a3a], axis=1)
+        xyprodmask_a23a = np.stack([xprodmask_a3a, yprodmask_a3a], axis=1)
 
         # locating product into it's respective pixel
         ## using an array of masks of shape a3a, each element in the array is a pixel
         prodmask_ga23m = \
-            (coordlim_g23a[:, None, :, [0]] <= prodmask_a23a[None, :, :])\
-            * (coordlim_g23a[:, None, :, [2]] >= prodmask_a23a[None, :, :])
-        prodmask_ga3m = prodmask_ga23m.prod(axis=2)
+            (coordlim_g23a[:, None, :, [0]] <= xyprodmask_a23a[None, :, :])\
+            * (coordlim_g23a[:, None, :, [2]] >= xyprodmask_a23a[None, :, :])
+        prodmask_ga3m = prodmask_ga23m.prod(axis=2).astype(np.bool)
 
         ## boolean slicing arrays, one array for mask bottom, peak, and top
         prodbot_gam = prodmask_ga3m[..., 0]
@@ -105,15 +105,17 @@ def main(
             prodtop_gAl.append(prodmask_a3a[:, 2][prodtop_gam[i]])
 
         # finding product height distributions in each pixel to determine layers
-        import matplotlib.pyplot as plt
-        ind = 4
-        plt.hist(
-            [prodbot_gAl[ind], prodpeak_gAl[ind], prodtop_gAl[ind]]
-        )
 
-        hist, bin_edges = np.histogram(prodbot_gAl[ind])
-        print(hist)
-        print(bin_edges)
+        import matplotlib.pyplot as plt
+        for ind in range(gridlen**2):
+            if ind != 4:
+                continue
+            plt.hist(
+                # [prodbot_gAl[ind], prodpeak_gAl[ind], prodtop_gAl[ind]]
+                prodbot_gAl[ind],
+                bins=30, range=(0,15)
+                # bins=5
+            )
 
         plt.show()
 

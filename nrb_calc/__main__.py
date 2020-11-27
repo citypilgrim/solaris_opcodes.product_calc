@@ -339,7 +339,7 @@ if __name__ == '__main__':
         #     color='C2'
         # )
         ax[2].plot(
-            r_tra[i][r_trm[i]], ret_d['P1_tra'][i][r_trm[i]], color='C2'
+            r_tra[i][r_trm[i]], (ret_d['P1_tra']/ret_d['P2_tra'])[i][r_trm[i]], color='C2'
         )
 
         # plotting comparison with sigmaMPL
