@@ -6,8 +6,8 @@ from ...global_imports.solaris_opcodes import *
 
 # params
 _histogram_range = (BOTTOMBLINDRANGE, TOPBLINDRANGE)
-_histogram_binnum = np.diff(_histogram_range)[0]/HISTOGRAMBINSIZE
-
+_histogram_binnum = int(np.ceil(np.diff(_histogram_range)[0]/HISTOGRAMBINSIZE))
+_histogram_gapthreshold = HISTOGRAMGAPSIZE
 
 # main func
 def main(
@@ -33,22 +33,49 @@ def main(
                                 len == 1 if peakonly_boo
     '''
     # splitting into histogram bins
-    # 'A' represents variable length
-    hist_bAt, binedges_ba = np.histogram(mask_a,
-                                       bins=_histogram_binnum,
-                                       range=_histogram_range)
-    histlen_ba = np.array([len(hist_At) for hist_At in hist_bAt])
+    histlen_ba, binedges_ba = np.histogram(mask_a,
+                                           bins=_histogram_binnum,
+                                           range=_histogram_range)
+    ## getting indexes for elements to their own bins
+    inds = np.digitize(mask_a, binedges_ba)
+    ## splitting array into their bins
+    hist_bAl = [mask_a[inds == i+1] for i in range(_histogram_binnum)]
 
     # determining layers from histogram bin proximity
-    histempty_bm = (histlen_bt == 0)
-    histlen_lAl, hist_lAl = [], []
-    histlen_Al, hist_Al = [], []
-    for i, b in enumerate(histempty_bm):
-        '''CONTINUE HERE'''
+    histlen_ll, hist_lAl = [], []
+    histlen_l, hist_a = [], np.array([])
+    empty_count = _histogram_gapthreshold
+    for i, histlen in enumerate(histlen_ba):
+        if not histlen:
+            empty_count -= 1
+            if empty_count <= 0:
+                if histlen_l:
+                    hist_lAl.append(hist_a)
+                    histlen_ll.append(histlen_l)
+                    histlen_l, hist_a = [], np.array([])
+        else:
+            empty_count = _histogram_gapthreshold
+            hist_a = np.concatenate([hist_a, hist_bAl[i]], axis=-1)
+            histlen_l.append(histlen_ba[i])
+    if histlen_l:   # handling last layer, incase no gap at the end
+        hist_lAl.append(hist_a)
+        histlen_ll.append(histlen_l)
 
     # taking average
+    histlen_ll = [sum(histlen_l) for histlen_l in histlen_ll]
+    histavg_ll = [sum(hist_a)/histlen_ll[i] if histlen_ll[i] else 0
+                  for i, hist_a in enumerate(hist_lAl)]
+
+    if peakonly_boo:
+        # if we only want the strongest cloud, will return the height of the
+        # layer with the highest count
+        maxlen = max(histlen_ll)
+        return [histavg for i, histavg in enumerate(histavg_ll)
+                if histlen_ll[i] == maxlen][0]
+    else:
+        return histavg_ll
 
 
 # testing
 if __name__ == '__main__':
-    main()
+    pass

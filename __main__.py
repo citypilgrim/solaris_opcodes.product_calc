@@ -92,7 +92,9 @@ def main(
         product_d,
         producttype_l=[
             CLOUDKEY
-        ]
+        ],
+
+        peakonly_boo=False,
     )
 
     return product_d

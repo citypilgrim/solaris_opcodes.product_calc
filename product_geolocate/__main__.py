@@ -2,6 +2,7 @@
 import numpy as np
 from pymap3d import ned2geodetic
 
+from .intelligent_averaging import main as intelligent_averaging
 from ...global_imports.solaris_opcodes import *
 
 
@@ -12,6 +13,8 @@ def main(
 
         product_d,
         producttype_l,
+
+        peakonly_boo,
 ):
     '''
     geolocates the products provided to a map like grid. It augments the data in
@@ -29,6 +32,10 @@ def main(
         product_d (dict): dictionary containing all relevant information
         producttype_l (list): list of keys of the product types which we would to
                               perform pixel averaging and geolocation
+
+        peakonly_boo (boolean): decides whether or not to return the
+                                average for each layer or just the
+                                layer with the most number of points
 
     Return
         product_d (dict): with the following keys added
@@ -104,22 +111,13 @@ def main(
             prodpeak_gAl.append(prodmask_a3a[:, 1][prodpeak_gam[i]])
             prodtop_gAl.append(prodmask_a3a[:, 2][prodtop_gam[i]])
 
-        # finding product height distributions in each pixel to determine layers
-
-        import matplotlib.pyplot as plt
-        for ind in range(gridlen**2):
-            if ind != 4:
-                continue
-            plt.hist(
-                # [prodbot_gAl[ind], prodpeak_gAl[ind], prodtop_gAl[ind]]
-                prodbot_gAl[ind],
-                bins=30, range=(0,15)
-                # bins=5
-            )
-
-        plt.show()
-
         # averaging within the pixel
+        prodbot_gAl = [intelligent_averaging(prodbot_A, peakonly_boo)
+                       for prodbot_A in prodbot_gAl]
+        prodpeak_gAl = [intelligent_averaging(prodpeak_A, peakonly_boo)
+                        for prodpeak_A in prodpeak_gAl]
+        prodtop_gAl = [intelligent_averaging(prodtop_A, peakonly_boo)
+                       for prodtop_A in prodtop_gAl]
 
         # interpolating across pixels if there is an empty pixel
 
