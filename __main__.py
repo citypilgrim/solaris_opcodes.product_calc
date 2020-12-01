@@ -106,8 +106,8 @@ if __name__ == '__main__':
 
     main(
         'smmpl_E2', smmpl_reader,
-        starttime=LOCTIMEFN('202011250500', 0),
-        endtime=LOCTIMEFN('202011250530', 0),
+        starttime=LOCTIMEFN('202011250000', 0),
+        endtime=LOCTIMEFN('202011250430', 0),
         # endtime=LOCTIMEFN('202011251200', 0),
         angularoffset=140.6,
 

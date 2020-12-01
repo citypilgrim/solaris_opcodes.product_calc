@@ -3,7 +3,6 @@ import numpy as np
 from pymap3d import ned2geodetic
 
 from .intelligent_averaging import main as intelligent_averaging
-from .nearestneighbour_average import main as nearestneighbour_average
 from ...global_imports.solaris_opcodes import *
 
 
@@ -71,6 +70,7 @@ def main(
             coordlim_gg2a + pixelsize/2
         ], axis=-1
     )
+    coordlim_g23a = coordlim_gg23a.reshape((-1, 2, 3))
 
     for key in producttype_l:
         prodmask_tl3a = product_d[key][MASKKEY]
@@ -95,53 +95,51 @@ def main(
 
         # locating product into it's respective pixel
         ## using an array of masks of shape a3a, each element in the array is a pixel
-        prodmask_gga23m = \
-            (
-                coordlim_gg23a[:, :, None, :, [0]]
-                <= xyprodmask_a23a[None, None, :, :]
-            )\
-            * (
-                coordlim_gg23a[:, :, None, :, [2]]
-                >= xyprodmask_a23a[None, None, :, :]
-            )
-        prodmask_gga3m = prodmask_gga23m.prod(axis=3).astype(np.bool)
+        prodmask_ga23m = \
+            (coordlim_g23a[:, None, :, [0]] <= xyprodmask_a23a[None, :, :])\
+            * (coordlim_g23a[:, None, :, [2]] >= xyprodmask_a23a[None, :, :])
+        prodmask_ga3m = prodmask_ga23m.prod(axis=2).astype(np.bool)
 
         ## boolean slicing arrays, one array for mask bottom, peak, and top
-        prodbot_ggam = prodmask_gga3m[..., 0]
-        prodpeak_ggam = prodmask_gga3m[..., 1]
-        prodtop_ggam = prodmask_gga3m[..., 2]
-        ### initialising empty grid
-        prodbot_ggAl = [[None]*gridlen]*gridlen
-        prodpeak_ggAl = [[None]*gridlen]*gridlen
-        prodtop_ggAl = [[None]*gridlen]*gridlen
+        prodbot_gam = prodmask_ga3m[..., 0]
+        prodpeak_gam = prodmask_ga3m[..., 1]
+        prodtop_gam = prodmask_ga3m[..., 2]
+        prodbot_gAl, prodpeak_gAl, prodtop_gAl = [], [], []
         ### captical 'A' here represents variable length arrays in the list
-        for i in range(gridlen):
-            for j in range(gridlen):
+        for i in range(gridlen**2):
+            prodbot_gAl.append(prodmask_a3a[:, 0][prodbot_gam[i]])
+            prodpeak_gAl.append(prodmask_a3a[:, 1][prodpeak_gam[i]])
+            prodtop_gAl.append(prodmask_a3a[:, 2][prodtop_gam[i]])
 
-                # placing product masks into their respective pixels
-                prodbot_ggAl[i][j] = prodmask_a3a[:, 0][prodbot_ggam[i][j]]
-                prodpeak_ggAl[i][j] = prodmask_a3a[:, 0][prodpeak_ggam[i][j]]
-                prodtop_ggAl[i][j] = prodmask_a3a[:, 0][prodtop_ggam[i][j]]
+        import matplotlib.pyplot as plt
+        ind = 4
+        mask_a = prodbot_gAl[ind]
+        plt.hist(
+            mask_a,
+            bins=30, range=(0, 15)
+            # bins=5
+        )
+        _histogram_range = (BOTTOMBLINDRANGE, TOPBLINDRANGE)
+        _histogram_binnum = int(np.ceil(np.diff(_histogram_range)[0]/HISTOGRAMBINSIZE))
+        histlen_ba, binedges_ba = np.histogram(mask_a,
+                                               bins=_histogram_binnum,
+                                               range=_histogram_range)
+        from .centralpixel_bimodal import main as centralpixel_bimodal
+        nhistlen_ba = centralpixel_bimodal(histlen_ba, binedges_ba)
+        plt.plot(binedges_ba, nhistlen_ba)
 
+        plt.show()
 
         # averaging within the pixel
-        # averaging of layers within each pixel is sorted by their altitudes
-                prodbot_ggAl[i][j] = intelligent_averaging(prodbot_ggAl[i][j],
-                                                           peakonly_boo)
-                prodpeak_ggAl[i][j] = intelligent_averaging(prodpeak_ggAl[i][j],
-                                                            peakonly_boo)
-                prodtop_ggAl[i][j] = intelligent_averaging(prodtop_ggAl[i][j],
-                                                           peakonly_boo)
+        prodbot_gAl = [intelligent_averaging(prodbot_A, peakonly_boo)
+                       for prodbot_A in prodbot_gAl]
+        prodpeak_gAl = [intelligent_averaging(prodpeak_A, peakonly_boo)
+                        for prodpeak_A in prodpeak_gAl]
+        prodtop_gAl = [intelligent_averaging(prodtop_A, peakonly_boo)
+                       for prodtop_A in prodtop_gAl]
 
         # interpolating across pixels if there is an empty pixel
-        # for a given empty pixel, we shall take the average of lowest layer
-        # from the neighbouring pixels
-        prodbot_ggAl = nearestneighbour_average(prodbot_ggAl)
-        prodpeak_ggAl = nearestneighbour_average(prodpeak_ggAl)
-        prodtop_ggAl = nearestneighbour_average(prodtop_ggAl)
 
         # correcting product height for elevation of lidar
 
-        # reshaping and adding to the dictionary
-
-    return product_d
+    return
