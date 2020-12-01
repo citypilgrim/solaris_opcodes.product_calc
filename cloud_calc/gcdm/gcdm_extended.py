@@ -92,8 +92,14 @@ def main(
     sbarwork_ta = np.mean(work0_tra[:, :GCDMTHRESWINDOW], axis=1)
     barwork_tra[:, :GCDMTHRESWINDOW] = sbarwork_ta[:, None]
     ## computing threshold
-    amax_tra = KEMPIRICAL * barwork_tra
-    amin_tra = (1 - KEMPIRICAL) * barwork_tra
+    amax_tra = np.concatenate([
+        KEMPIRICALLOW * barwork_tra[:, :GCDMTHRESWINDOW],
+        KEMPIRICALHIGH * barwork_tra[:, GCDMTHRESWINDOW:]
+    ], axis=-1)
+    amin_tra = np.concatenate([
+        (1 - KEMPIRICALLOW) * barwork_tra[:, :GCDMTHRESWINDOW],
+        (1 - KEMPIRICALHIGH) * barwork_tra[:, GCDMTHRESWINDOW:]
+    ], axis=-1)
 
     # finding clouds applying algorithm on each axis
     pool = mp.Pool(processes=GCDMPROCNUM)
@@ -208,8 +214,10 @@ if __name__ == '__main__':
         'smmpl_E2', smmpl_reader,
         # starttime=LOCTIMEFN('202010290000', UTCINFO),
         # endtime=LOCTIMEFN('202010291200', UTCINFO),
-        starttime=LOCTIMEFN('202009220000', UTCINFO),
-        endtime=LOCTIMEFN('202009230000', UTCINFO),
+        # starttime=LOCTIMEFN('202009220000', UTCINFO),
+        # endtime=LOCTIMEFN('202009230000', UTCINFO),
+        starttime=LOCTIMEFN('202011141830', 8),
+        endtime=LOCTIMEFN('202011141900', 8),
     )
 
     ts_ta = nrb_d['Timestamp']
@@ -235,7 +243,8 @@ if __name__ == '__main__':
     work_tra = NRB_tra/betamprime_tra
     # work_tra = SNR_tra
 
-    plotind = 940
+    plotind = 0
+    # plotind = 940
     # plotind = 2500
     # plotind = 2000
     print(ts_ta[plotind])
