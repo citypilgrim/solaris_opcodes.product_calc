@@ -1,11 +1,12 @@
 # imports
+from itertools import chain
+
 import numpy as np
 from pymap3d import ned2geodetic
 
 from .intelligent_averaging import main as intelligent_averaging
 from .nearestneighbour_average import main as nearestneighbour_average
 from ...global_imports.solaris_opcodes import *
-
 
 # main func
 def main(
@@ -22,6 +23,9 @@ def main(
     product_d with the geolocated data.
     the product mask has to be of shape
     (time, no. of layers, 3(mask bottom, mask peak , mask top))
+
+    geolocation assumes that horizontal translation from one  pixel to the next is
+    relatively flat, i.e. a flat ground.
 
     Parameters
         pixelsize (float): [km] pixel size for data sampling
@@ -40,18 +44,25 @@ def main(
 
     Return
         product_d (dict): with the following keys added
-            LATITUDEKEY: (np.ndarray): latitude coordinates of pixel
-            LONGITUDEKEY: (np.ndarray): longitude coordinates of pixel
+            PIXELLATITUDEKEY: (np.ndarray): latitude coordinates of pixel
+            PIXELLONGITUDEKEY: (np.ndarray): longitude coordinates of pixel
 
+            for each producttype in producttype_l, it will add the following keys:
+                PIXELBOTTOMKEY: (list): mask bottom height for pixels, same order as
+                                        LATITUDE/LONGITUDEKEY
+                PIXELPEAKKEY: (list): mask bottom height for pixels, same order as
+                                      LATITUDE/LONGITUDEKEY
+                PIXELTOPKEY: (list): mask bottom height for pixels, same order as
+                                     LATITUDE/LONGITUDEKEY
     '''
+    elevation /= 1000           # converting to [km]
+
     # reading product and relevant arrays
     array_d = product_d[NRBKEY]
     theta_ta = array_d['theta_ta']
     phi_ta = array_d['phi_ta']
 
-    # centering on provided coordinates; finding center NED of pixels
-    # we ignore elevation effects when translating between pixels
-    centern, centere = 0, 0
+    # geolocating pixels
 
     ## finding coordinate limits; [[left_lim, center, right_lim], ...]
     ## shape (gridlen, gridlen, 2(north, east), 3(left_lim, center, right_lim))
@@ -72,6 +83,15 @@ def main(
         ], axis=-1
     )
 
+    ## adding coordinates to dictionary
+    coord_p23a = list(chain(*coordlim_gg23a))
+    n_pa = np.array(list(map(lambda coord_23a: coord_23a[0][1], coord_p23a)))
+    e_pa = np.array(list(map(lambda coord_23a: coord_23a[1][1], coord_p23a)))
+    lat_pa, long_pa, _ = ned2geodetic(n_pa, e_pa, 0, latitude, longitude, 0)
+    product_d[PIXELLATITUDEKEY] = lat_pa
+    product_d[PIXELLONGITUDEKEY] = long_pa
+
+    # handling pixel averaging
     for key in producttype_l:
         prodmask_tl3a = product_d[key][MASKKEY]
 
@@ -136,12 +156,21 @@ def main(
         # interpolating across pixels if there is an empty pixel
         # for a given empty pixel, we shall take the average of lowest layer
         # from the neighbouring pixels
-        prodbot_ggAl = nearestneighbour_average(prodbot_ggAl)
-        prodpeak_ggAl = nearestneighbour_average(prodpeak_ggAl)
-        prodtop_ggAl = nearestneighbour_average(prodtop_ggAl)
+        prodbot_ggAl = nearestneighbour_average(prodbot_ggAl, gridlen)
+        prodpeak_ggAl = nearestneighbour_average(prodpeak_ggAl, gridlen)
+        prodtop_ggAl = nearestneighbour_average(prodtop_ggAl, gridlen)
 
         # correcting product height for elevation of lidar
+        for i in range(gridlen):
+            for j in range(gridlen):
+                prodbot_ggAl[i][j] += elevation
+                prodpeak_ggAl[i][j] += elevation
+                prodtop_ggAl[i][j] += elevation
 
         # reshaping and adding to the dictionary
+        # new shape (no.of pixels, variable length based on number of layers)
+        product_d[key][PIXELBOTTOMKEY] = list(chain(*prodbot_ggAl))
+        product_d[key][PIXELPEAKKEY] = list(chain(*prodpeak_ggAl))
+        product_d[key][PIXELTOPKEY] = list(chain(*prodtop_ggAl))
 
     return product_d

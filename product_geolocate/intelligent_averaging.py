@@ -29,7 +29,7 @@ def main(
                                 average for each layer or just the
                                 layer with the most number of points
     Return
-        maskavg_a (np.ndarray): averaged mask altitude for each layer,
+        histavg_a (np.ndarray): averaged mask altitude for each layer,
                                 len == 1 if peakonly_boo
     '''
     # splitting into histogram bins
@@ -62,18 +62,18 @@ def main(
         histlen_ll.append(histlen_l)
 
     # taking average
-    histlen_ll = [sum(histlen_l) for histlen_l in histlen_ll]
-    histavg_ll = [sum(hist_a)/histlen_ll[i] if histlen_ll[i] else 0
-                  for i, hist_a in enumerate(hist_lAl)]
+    masklen_l = [sum(histlen_l) for histlen_l in histlen_ll]
+    maskavg_l = [sum(hist_a)/masklen_l[i] if masklen_l[i] else 0
+                 for i, hist_a in enumerate(hist_lAl)]
 
     if peakonly_boo:
         # if we only want the strongest cloud, will return the height of the
         # layer with the highest count
-        maxlen = max(histlen_ll)
-        return [histavg for i, histavg in enumerate(histavg_ll)
-                if histlen_ll[i] == maxlen][0]
+        maxlen = max(masklen_l)
+        return np.array([maskavg for i, maskavg in enumerate(maskavg_l)
+                         if masklen_l[i] == maxlen][:1])
     else:
-        return histavg_ll
+        return np.array(maskavg_l)
 
 
 # testing

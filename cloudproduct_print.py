@@ -1,28 +1,31 @@
 # imports
 from ..global_imports.solaris_opcodes import *
 
+
 # main func
 @verbose
-@announcer
 def main(
         product_d,
 ):
     '''
-    generates formatted cloud products from the product_calc.__main__
-    alot of hardcoding in this script to accomodate reading the data out of
-    product_calc
+    this function serves to retrieve the computed cloud products from
+    product_calc.__main__
 
     Parameters
         product_d (dict): output from product_calc.__main__
     '''
-    lat_a = product_d[PRODUCTLATKEY]
-    long_a = product_d[LONGITUDE]
+    ts_ta = product_d[NRBKEY]['Timestamp']
+    print(ts_ta[0])
+    print(ts_ta[-1])
+
+    lat_pa = product_d[PIXELLATITUDEKEY]
+    long_pa = product_d[PIXELLONGITUDEKEY]
     cloud_d = product_d[CLOUDKEY]
 
-    cloudbottom_a = cloud_d[CLOUDBOTTOMKEY]  # depreciated
+    cloudbottom_pAl = cloud_d[PIXELBOTTOMKEY]
 
-    for i, lat in enumerate(lat_a):
-        print(lat_a[i], long_a[i], cloudbottom_a[i])
+    for i, lat in enumerate(lat_pa):
+        print(lat_pa[i], long_pa[i], *cloudbottom_pAl[i])
 
 
 # running
@@ -36,10 +39,14 @@ if __name__ == '__main__':
 
     USER must adjust mutable aprams according to their needs
     '''
-    import datetime.datetime as datetime
+    # imports
+    import os
+
+    import numpy as np
+    np.seterr(all='ignore')     # choosing not to print any warnings
 
     from .__main__ import main as product_calc
-    from .optimaltime_search import main as optimaltime_search
+    # from .optimaltime_search import main as optimaltime_search
     from ..file_readwrite import smmpl_reader
 
     # mutable params
@@ -54,12 +61,14 @@ if __name__ == '__main__':
 
 
     # retreiving optimal time
-    starttime, endtime = optimaltime_search(LOCTIMEFN(datetime.now(), UTCINFO))
+    # starttime, endtime = optimaltime_search(LOCTIMEFN(datetime.now(), UTCINFO))
+    starttime = LOCTIMEFN('202011250000', UTCINFO)
+    endtime = LOCTIMEFN('202011251200', UTCINFO)
 
     # running computation
     product_d = product_calc(
         lidarname, smmpl_reader,
-        starttime, endtime,
+        starttime=starttime, endtime=endtime,
         angularoffset=angularoffset,
 
         combpolboo=combpol_boo,
@@ -72,3 +81,4 @@ if __name__ == '__main__':
 
     # printing output
     main(product_d)
+    os._exit(0)  # closes all the child processes that were left hanging
