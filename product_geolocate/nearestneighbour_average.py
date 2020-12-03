@@ -40,13 +40,16 @@ def main(
                 # taking averaging of lowest layer in neighbouring pixels
                 # the slicing to index 1 instead of indexing at 0 prevents throwing
                 # of exception in the event the neighbouring pixel is also empty
-                prodmaskcandidate_l = []
+                prodmaskcandidate_a = np.array([])
                 for k, neighbouri in enumerate(neighbouri_a):
                     neighbourj = neighbourj_a[k]
-                    prodmaskcandidate_l += oprodmask_ggAl[neighbouri][neighbourj][:1]
-                prodmask_ggAl[i][j] = [
-                    sum(prodmaskcandidate_l)/len(prodmaskcandidate_l)
-                ]
+                    prodmaskcandidate_a = np.concatenate([
+                        prodmaskcandidate_a,
+                        oprodmask_ggAl[neighbouri][neighbourj][:1]
+                    ])
+                prodmask_ggAl[i][j] = np.array([
+                    prodmaskcandidate_a.sum()/prodmaskcandidate_a.size
+                ])
 
     return prodmask_ggAl
 

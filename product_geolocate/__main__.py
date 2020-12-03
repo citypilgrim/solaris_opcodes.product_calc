@@ -1,4 +1,5 @@
 # imports
+from copy import deepcopy
 from itertools import chain
 
 import numpy as np
@@ -55,7 +56,9 @@ def main(
                 PIXELTOPKEY: (list): mask bottom height for pixels, same order as
                                      LATITUDE/LONGITUDEKEY
     '''
+    # etc initialisation
     elevation /= 1000           # converting to [km]
+    emptygrid_ggAl = [[None for _ in range(gridlen)] for _ in range(gridlen)]
 
     # reading product and relevant arrays
     array_d = product_d[NRBKEY]
@@ -131,18 +134,18 @@ def main(
         prodpeak_ggam = prodmask_gga3m[..., 1]
         prodtop_ggam = prodmask_gga3m[..., 2]
         ### initialising empty grid
-        prodbot_ggAl = [[None]*gridlen]*gridlen
-        prodpeak_ggAl = [[None]*gridlen]*gridlen
-        prodtop_ggAl = [[None]*gridlen]*gridlen
+        prodbot_ggAl = deepcopy(emptygrid_ggAl)
+        prodpeak_ggAl = deepcopy(emptygrid_ggAl)
+        prodtop_ggAl = deepcopy(emptygrid_ggAl)
+
         ### captical 'A' here represents variable length arrays in the list
         for i in range(gridlen):
             for j in range(gridlen):
 
                 # placing product masks into their respective pixels
                 prodbot_ggAl[i][j] = prodmask_a3a[:, 0][prodbot_ggam[i][j]]
-                prodpeak_ggAl[i][j] = prodmask_a3a[:, 0][prodpeak_ggam[i][j]]
-                prodtop_ggAl[i][j] = prodmask_a3a[:, 0][prodtop_ggam[i][j]]
-
+                prodpeak_ggAl[i][j] = prodmask_a3a[:, 1][prodpeak_ggam[i][j]]
+                prodtop_ggAl[i][j] = prodmask_a3a[:, 2][prodtop_ggam[i][j]]
 
         # averaging within the pixel
         # averaging of layers within each pixel is sorted by their altitudes

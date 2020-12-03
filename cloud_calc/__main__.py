@@ -40,7 +40,7 @@ def main(
     # removing base on minimal layer thickness
 
     ## finding invalid layers
-    cld_tlm = (np.diff(cld_tl3a[..., ::2]).squeeze() <= CLOUDMINTHICK)
+    cld_tlm = (np.diff(cld_tl3a[..., ::2])[..., 0] <= CLOUDMINTHICK)
     cld_tl3m = np.stack([cld_tlm]*3, axis=2)
     cld_tl3a[cld_tl3m] = np.nan
 

@@ -9,8 +9,8 @@ def main(
     '''
     Converts product mask which is an array containing a list of
     [prod_bot, prod_peak, prod_top],
-    with each list corresponding to a layer. Into stacking of two arrays, one for
-    prod_bot and the other for prod_top
+    with each list corresponding to a layer. Into stacking of 3 arrays, one for
+    prod_bot, prod_peak and prod_top each.
     with the shape (time, max number of layers, 3(cldbot, ,cldpeak, cldtop))
     with height is not found, will be left as np.nan
 
