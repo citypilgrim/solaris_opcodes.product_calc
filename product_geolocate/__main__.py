@@ -68,7 +68,7 @@ def main(
     # geolocating pixels
 
     ## finding coordinate limits; [[left_lim, center, right_lim], ...]
-    ## shape (gridlen, gridlen, 2(north, east), 3(left_lim, center, right_lim))
+    ## shape (gridlen, gridlen, 2(east, north), 3(left_lim, center, right_lim))
     if gridlen%2:
         gridrange = np.arange(
             -(gridlen//2)*pixelsize, (gridlen//2 + 1)*pixelsize, pixelsize
@@ -77,7 +77,7 @@ def main(
         gridrange = np.arange(
             -(gridlen/2 - 0.5)*pixelsize, (gridlen/2 + 0.5)*pixelsize, pixelsize
         )
-    coordlim_gg2a = np.stack(np.meshgrid(gridrange, gridrange), axis=-1)
+    coordlim_gg2a = np.stack(np.meshgrid(gridrange, gridrange)[::-1], axis=-1)
     coordlim_gg23a = np.stack(
         [
             coordlim_gg2a - pixelsize/2,
@@ -86,10 +86,11 @@ def main(
         ], axis=-1
     )
 
+
     ## adding coordinates to dictionary
     coord_p23a = list(chain(*coordlim_gg23a))
-    n_pa = np.array(list(map(lambda coord_23a: coord_23a[0][1], coord_p23a)))
-    e_pa = np.array(list(map(lambda coord_23a: coord_23a[1][1], coord_p23a)))
+    e_pa = np.array(list(map(lambda coord_23a: coord_23a[0][1], coord_p23a)))
+    n_pa = np.array(list(map(lambda coord_23a: coord_23a[1][1], coord_p23a)))
     lat_pa, long_pa, _ = ned2geodetic(n_pa, e_pa, 0, latitude, longitude, 0)
     product_d[PIXELLATITUDEKEY] = lat_pa
     product_d[PIXELLONGITUDEKEY] = long_pa
@@ -100,9 +101,13 @@ def main(
 
         # convert product to cartesian grid coordinates
         # (time*max no. of layers., 3(mask bottom, mask peak, mask top))
+        # take note of the negative sign when computing y, because by convention
+        # y points to the west, we put a negative sign here to make y point to the
+        # east, it is better that y is changed to point to the east since this is an
+        # isolated case. So that the grid indexing convention can follow NE
         xprodmask_tl3a = prodmask_tl3a \
             * np.tan(theta_ta)[:, None, None] * np.cos(phi_ta)[:, None, None]
-        yprodmask_tl3a = prodmask_tl3a \
+        yprodmask_tl3a = - prodmask_tl3a \
             * np.tan(theta_ta)[:, None, None] * np.sin(phi_ta)[:, None, None]
 
         ## flattening and removing all completemly invalid layers
@@ -114,7 +119,7 @@ def main(
         prodmask_a3a = prodmask_a3a[invalidlayer_am]
         xprodmask_a3a = xprodmask_a3a[invalidlayer_am]
         yprodmask_a3a = yprodmask_a3a[invalidlayer_am]
-        xyprodmask_a23a = np.stack([xprodmask_a3a, yprodmask_a3a], axis=1)
+        xyprodmask_a23a = np.stack([yprodmask_a3a, xprodmask_a3a], axis=1)
 
         # locating product into it's respective pixel
         ## using an array of masks of shape a3a, each element in the array is a pixel
