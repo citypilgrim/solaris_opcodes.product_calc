@@ -40,13 +40,14 @@ if __name__ == '__main__':
     USER must adjust mutable aprams according to their needs
     '''
     # imports
+    import datetime as dt
     import os
 
     import numpy as np
     np.seterr(all='ignore')     # choosing not to print any warnings
 
     from .__main__ import main as product_calc
-    # from .optimaltime_search import main as optimaltime_search
+    from .optimaltime_search import main as optimaltime_search
     from ..file_readwrite import smmpl_reader
 
     # mutable params
@@ -61,9 +62,12 @@ if __name__ == '__main__':
 
 
     # retreiving optimal time
-    # starttime, endtime = optimaltime_search(LOCTIMEFN(datetime.now(), UTCINFO))
-    starttime = LOCTIMEFN('202011250000', UTCINFO)
-    endtime = LOCTIMEFN('202011251200', UTCINFO)
+    starttime = LOCTIMEFN(dt.datetime.now(), UTCINFO)
+    endtime = optimaltime_search(
+        lidarname,
+        starttime=starttime,
+        verbboo=False,
+    )
 
     # running computation
     product_d = product_calc(
