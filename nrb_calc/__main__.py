@@ -292,8 +292,8 @@ if __name__ == '__main__':
     mplreader = smmpl_reader
     # mplfile_dir = DIRCONFN(osp.dirname(osp.abspath(__file__)),
     #                        'testNRB_smmpl_E2.mpl')
-    starttime = LOCTIMEFN('202009220000', UTCINFO)
-    endtime = LOCTIMEFN('202009230000', UTCINFO)
+    starttime = LOCTIMEFN('202009220000', 0)
+    endtime = LOCTIMEFN('202009230000', 0)
     ret_d = main(
         lidarname, mplreader,
         starttime=starttime, endtime=endtime,

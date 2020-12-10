@@ -212,10 +212,10 @@ if __name__ == '__main__':
 
     nrb_d = nrb_calc(
         'smmpl_E2', smmpl_reader,
-        # starttime=LOCTIMEFN('202010290000', UTCINFO),
-        # endtime=LOCTIMEFN('202010291200', UTCINFO),
-        # starttime=LOCTIMEFN('202009220000', UTCINFO),
-        # endtime=LOCTIMEFN('202009230000', UTCINFO),
+        # starttime=LOCTIMEFN('202010290000', 0),
+        # endtime=LOCTIMEFN('202010291200', 0),
+        # starttime=LOCTIMEFN('202009220000', 0),
+        # endtime=LOCTIMEFN('202009230000', 0),
         starttime=LOCTIMEFN('202011141830', 8),
         endtime=LOCTIMEFN('202011141900', 8),
     )

@@ -181,8 +181,8 @@ if __name__ == '__main__':
 
     nrb_d = nrb_calc(
         'smmpl_E2', smmpl_reader,
-        starttime=LOCTIMEFN('202009220000', UTCINFO),
-        endtime=LOCTIMEFN('202009230000', UTCINFO),
+        starttime=LOCTIMEFN('202009220000', 0),
+        endtime=LOCTIMEFN('202009230000', 0),
     )
 
     NRB_tra = nrb_d['NRB_tra']

@@ -266,8 +266,8 @@ if __name__ == '__main__':
     nrb_d = nrb_calc(
         'smmpl_E2', smmpl_reader,
         # '/home/tianli/SOLAR_EMA_project/data/smmpl_E2/20200805/202008050003.mpl',
-        starttime=LOCTIMEFN('202009220000', UTCINFO),
-        endtime=LOCTIMEFN('202009230000', UTCINFO),
+        starttime=LOCTIMEFN('202009220000', 0),
+        endtime=LOCTIMEFN('202009230000', 0),
     )
 
     main(nrb_d, combpolboo=True, plotboo=True)

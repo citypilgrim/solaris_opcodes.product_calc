@@ -211,8 +211,8 @@ if __name__ == '__main__':
         # '/home/tianli/SOLAR_EMA_project/data/smmpl_E2/20200901/202009010500.mpl',
         # '/home/tianli/SOLAR_EMA_project/data/smmpl_E2/20200930/202009300400.mpl',
         '/home/tianli/SOLAR_EMA_project/data/smmpl_E2/20200805/202008050003.mpl',
-        # starttime=LOCTIMEFN('202009010000', UTCINFO),
-        # endtime=LOCTIMEFN('202009010800', UTCINFO),
+        # starttime=LOCTIMEFN('202009010000', 0),
+        # endtime=LOCTIMEFN('202009010800', 0),
         timestep=None, rangestep=5,
     )
 

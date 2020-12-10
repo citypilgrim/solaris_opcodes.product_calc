@@ -49,9 +49,15 @@ if __name__ == '__main__':
     from .__main__ import main as product_calc
     from .optimaltime_search import main as optimaltime_search
     from ..file_readwrite import smmpl_reader
+    from ..lidardata_pull import main as lidardata_pull
 
     # mutable params
     lidarname = 'smmpl_E2'
+
+    lidar_ip = None
+    lidaruser = 'mpluser'
+    lidardata_dir = f'C:/Users/mpluser/Desktop/{lidarname}'
+
     combpol_boo = True
     pixelsize = 5               # [km]
     gridlen = 3
@@ -61,8 +67,16 @@ if __name__ == '__main__':
     elevation = 70                              # [m]
 
 
+    # pulling latest dataset from the lidar
+    lidardata_pull(
+        lidar_ip, lidaruser,
+        lidardata_dir,
+        verbboo=False
+    )
+
+
     # retreiving optimal time
-    starttime = LOCTIMEFN(dt.datetime.now(), UTCINFO)
+    starttime = LOCTIMEFN(dt.datetime.now(), 0)
     endtime = optimaltime_search(
         lidarname,
         starttime=starttime,
