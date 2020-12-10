@@ -41,12 +41,14 @@ def main(nrb_d, rangestep):
     try:
         Delt_a, _, _, theta_a = list(zip(*nrb_d['DeltNbinpadtheta_a']))
         Delt_a = np.array(Delt_a) * rangestep
-        nrb_d['DeltNbinpadtheta_a'] = list(zip(Delt_a, Nbin_a, pad_a, theta_a))
+        nrb_d['DeltNbinpadtheta_a'] = list(map(
+            list, zip(Delt_a, Nbin_a, pad_a, theta_a)
+        ))
         indkey = 'DeltNbinpadthetaind_ta'
     except KeyError:            # mpl files (no scanning) has no theta component
         Delt_a, _, _ = list(zip(*nrb_d['DeltNbinpad_a']))
         Delt_a = np.array(Delt_a) * rangestep
-        nrb_d['DeltNbinpad_a'] = list(zip(Delt_a, Nbin_a, pad_a))
+        nrb_d['DeltNbinpad_a'] = list(map(list, zip(Delt_a, Nbin_a, pad_a)))
         indkey = 'DeltNbinpadind_ta'
 
     # performing reshaping operation
