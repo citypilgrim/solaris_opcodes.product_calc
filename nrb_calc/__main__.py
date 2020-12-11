@@ -80,6 +80,8 @@ def main(
         starttime=starttime, endtime=endtime,
         filename=None,
     )
+    if not mpl_d:
+        return {}
 
     ts_ta = mpl_d['Timestamp']
 

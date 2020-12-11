@@ -50,11 +50,12 @@ if __name__ == '__main__':
     from .optimaltime_search import main as optimaltime_search
     from ..file_readwrite import smmpl_reader
     from ..lidardata_pull import main as lidardata_pull
+    from ..global_imports.smmpl_opcodes import LIDARIPADDRESS
 
     # mutable params
     lidarname = 'smmpl_E2'
 
-    lidar_ip = None
+    lidar_ip = LIDARIPADDRESS
     lidaruser = 'mpluser'
     lidardata_dir = f'C:/Users/mpluser/Desktop/{lidarname}'
 
@@ -68,12 +69,18 @@ if __name__ == '__main__':
 
 
     # pulling latest dataset from the lidar
+    today = dt.datetime.today()
+    yesterday = today - dt.timedelta(days=1)
     lidardata_pull(
         lidar_ip, lidaruser,
         lidardata_dir,
+        lidarname,
+        syncday_lst=[
+            DATEFMT.format(today),
+            DATEFMT.format(yesterday)
+        ],
         verbboo=False
     )
-
 
     # retreiving optimal time
     starttime = LOCTIMEFN(dt.datetime.now(), 0)
@@ -98,5 +105,8 @@ if __name__ == '__main__':
     )
 
     # printing output
-    main(product_d)
-    os._exit(0)  # closes all the child processes that were left hanging
+    if not product_d:
+        print('no data found')
+    else:
+        main(product_d)
+        os._exit(0)  # closes all the child processes that were left hanging

@@ -75,6 +75,8 @@ def main(
         timestep, rangestep,
         angularoffset,
     )
+    if not nrb_d:
+        return {}
     product_d[NRBKEY] = nrb_d
 
     # product computation
