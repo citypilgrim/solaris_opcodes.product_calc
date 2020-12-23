@@ -3,7 +3,7 @@ from ..global_imports.solaris_opcodes import *
 
 
 # main func
-@verbose
+@logger
 def main(
         product_d,
 ):
@@ -14,18 +14,22 @@ def main(
     Parameters
         product_d (dict): output from product_calc.__main__
     '''
-    ts_ta = product_d[NRBKEY]['Timestamp']
-    print(ts_ta[0])
-    print(ts_ta[-1])
+    if not product_d:
+        print('no data found')
 
-    lat_pa = product_d[PIXELLATITUDEKEY]
-    long_pa = product_d[PIXELLONGITUDEKEY]
-    cloud_d = product_d[CLOUDKEY]
+    else:
+        ts_ta = product_d[NRBKEY]['Timestamp']
+        print(ts_ta[0])
+        print(ts_ta[-1])
 
-    cloudbottom_pAl = cloud_d[PIXELBOTTOMKEY]
+        lat_pa = product_d[PIXELLATITUDEKEY]
+        long_pa = product_d[PIXELLONGITUDEKEY]
+        cloud_d = product_d[CLOUDKEY]
 
-    for i, lat in enumerate(lat_pa):
-        print(lat_pa[i], long_pa[i], *cloudbottom_pAl[i])
+        cloudbottom_pAl = cloud_d[PIXELBOTTOMKEY]
+
+        for i, lat in enumerate(lat_pa):
+            print(lat_pa[i], long_pa[i], *cloudbottom_pAl[i])
 
 
 # running
@@ -37,7 +41,7 @@ if __name__ == '__main__':
     starttime will be the time the program is run, and it would retreieve the latest
     product which would span the entire sky
 
-    USER must adjust mutable aprams according to their needs
+    USER must adjust mutable params according to their needs
     '''
     # imports
     import datetime as dt
@@ -59,6 +63,8 @@ if __name__ == '__main__':
     lidaruser = 'mpluser'
     lidardata_dir = f'C:/Users/mpluser/Desktop/{lidarname}'
 
+    lidar_utcoffset = 0         # [hrs]
+
     combpol_boo = True
     pixelsize = 5               # [km]
     gridlen = 3
@@ -67,9 +73,9 @@ if __name__ == '__main__':
     latitude, longitude = 1.299119, 103.771232  # [deg]
     elevation = 70                              # [m]
 
-
     # pulling latest dataset from the lidar
-    today = dt.datetime.today()
+    utcoffset = SOLARISUTCOFFSET - lidar_utcoffset
+    today = dt.datetime.today() - dt.timedelta(hours=utcoffset)
     yesterday = today - dt.timedelta(days=1)
     lidardata_pull(
         lidar_ip, lidaruser,
@@ -83,10 +89,10 @@ if __name__ == '__main__':
     )
 
     # retreiving optimal time
-    starttime = LOCTIMEFN(dt.datetime.now(), 0)
-    endtime = optimaltime_search(
+    endtime = LOCTIMEFN(dt.datetime.now(), SOLARISUTCOFFSET)
+    starttime = optimaltime_search(
         lidarname,
-        starttime=starttime,
+        endtime=endtime,
         verbboo=False,
     )
 
@@ -104,9 +110,13 @@ if __name__ == '__main__':
         verbboo=False,
     )
 
-    # printing output
-    if not product_d:
-        print('no data found')
-    else:
-        main(product_d)
-        os._exit(0)  # closes all the child processes that were left hanging
+    # writing output to file
+    log_file = DIRCONFN(
+        SOLARISCLOUDPRODDIR.format(lidarname), DATEFMT.format(today),
+        CLOUDPRODUCTFILE
+    )
+    main(product_d, stdoutlog=log_file, stderrlog=log_file, ,
+         dailylogboo=True, utcoffset=utcoffset)
+
+    # closes all the child processes that were left hanging
+    os._exit(0)
