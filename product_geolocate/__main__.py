@@ -57,6 +57,7 @@ def main(
                                      LATITUDE/LONGITUDEKEY
     '''
     # etc initialisation
+    pixelsize *= 1000           # converting to [m]
     elevation /= 1000           # converting to [km]
     emptygrid_ggAl = [[None for _ in range(gridlen)] for _ in range(gridlen)]
 
