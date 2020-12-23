@@ -1,4 +1,4 @@
-# imports
+4# imports
 from ..global_imports.solaris_opcodes import *
 
 
@@ -115,8 +115,11 @@ if __name__ == '__main__':
         SOLARISCLOUDPRODDIR.format(lidarname), DATEFMT.format(today),
         CLOUDPRODUCTFILE
     )
-    main(product_d, stdoutlog=log_file, stderrlog=log_file,
-         dailylogboo=True, utcoffset=utcoffset)
+    main(
+        product_d,
+        stdoutlog=log_file, stderrlog=log_file,
+        dailylogboo=True, utcoffset=utcoffset
+    )
 
     # closes all the child processes that were left hanging
     os._exit(0)

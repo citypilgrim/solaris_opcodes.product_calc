@@ -86,6 +86,7 @@ def main(
             coordlim_gg2a + pixelsize/2
         ], axis=-1
     )
+    coordlim_km_gg23a = coordlim_gg23a / 1000
 
 
     ## adding coordinates to dictionary
@@ -126,11 +127,11 @@ def main(
         ## using an array of masks of shape a3a, each element in the array is a pixel
         prodmask_gga23m = \
             (
-                coordlim_gg23a[:, :, None, :, [0]]
+                coordlim_km_gg23a[:, :, None, :, [0]]
                 <= xyprodmask_a23a[None, None, :, :]
             )\
             * (
-                coordlim_gg23a[:, :, None, :, [2]]
+                coordlim_km_gg23a[:, :, None, :, [2]]
                 >= xyprodmask_a23a[None, None, :, :]
             )
         prodmask_gga3m = prodmask_gga23m.prod(axis=3).astype(np.bool)
