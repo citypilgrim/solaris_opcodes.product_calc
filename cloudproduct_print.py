@@ -115,7 +115,7 @@ if __name__ == '__main__':
         SOLARISCLOUDPRODDIR.format(lidarname), DATEFMT.format(today),
         CLOUDPRODUCTFILE
     )
-    main(product_d, stdoutlog=log_file, stderrlog=log_file, ,
+    main(product_d, stdoutlog=log_file, stderrlog=log_file,
          dailylogboo=True, utcoffset=utcoffset)
 
     # closes all the child processes that were left hanging
