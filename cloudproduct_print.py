@@ -1,4 +1,4 @@
-4# imports
+# imports
 from ..global_imports.solaris_opcodes import *
 
 
@@ -54,24 +54,23 @@ if __name__ == '__main__':
     from .optimaltime_search import main as optimaltime_search
     from ..file_readwrite import smmpl_reader
     from ..lidardata_pull import main as lidardata_pull
-    from ..global_imports.smmpl_opcodes import LIDARIPADDRESS
 
     # mutable params
-    lidarname = 'smmpl_E2'
+    lidarname = LIDARNAME
 
     lidar_ip = LIDARIPADDRESS
-    lidaruser = 'mpluser'
-    lidardata_dir = f'C:/Users/mpluser/Desktop/{lidarname}'
+    lidaruser = LIDARUSER
+    lidardata_dir = LIDARDATADIR
 
-    lidar_utcoffset = 0         # [hrs]
+    lidar_utcoffset = LIDARUTCOFFSET
 
-    combpol_boo = True
-    pixelsize = 5               # [km]
-    gridlen = 3
+    combpol_boo = COMBINEPOLARISATIONBOO
+    pixelsize = PIXELSIZE
+    gridlen = GRIDLENGTH
 
-    angularoffset = 140.6                      # [deg]
-    latitude, longitude = 1.299119, 103.771232  # [deg]
-    elevation = 70                              # [m]
+    angularoffset = ANGULAROFFSET
+    latitude, longitude = LATITUDE, LONGITUDE
+    elevation = ELEVATION
 
     # pulling latest dataset from the lidar
     utcoffset = SOLARISUTCOFFSET - lidar_utcoffset
