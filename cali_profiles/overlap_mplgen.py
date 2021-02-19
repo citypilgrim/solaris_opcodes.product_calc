@@ -287,14 +287,14 @@ if __name__ == '__main__':
 
     ## computing deadtime
     D_d = FINDFILESFN(DEADTIMEFILE, SOLARISMPLCALIDIR.format(lidarname))[0]
-    _, D_f = deadtime_genread(D_d)
+    _, D_f = deadtime_gen(D_d)
 
     ## computing afterpulse
-    mpl_d = '/home/tianli/SOLAR_EMA_project/data/smmpl_E2/calibration/measured_profiles/201910170400_2e-7_afterpulse.mpl'
+    mpl_d = '/home/tianli/SOLAR_EMA_project/data/smmpl_E2/calibration/201910170400_2e-7_afterpulse.mpl'
     napOE_raa = afterpulse_mplgen(mplreader, mpl_d, D_f, compstr='c')
 
     ## computing overlap
-    mpl_d = '/home/tianli/SOLAR_EMA_project/data/smmpl_E2/calibration/measured_profiles/201910230900_2e-7_overlap.mpl'
+    mpl_d = '/home/tianli/SOLAR_EMA_project/data/smmpl_E2/calibration/201910230900_2e-7_overlap.mpl'
     main(mplreader, mpl_d, D_f, napOE_raa,
          combpolboo=True, plotboo=True, compstr='b')
     main(mplreader, mpl_d, D_f, napOE_raa,
@@ -304,9 +304,8 @@ if __name__ == '__main__':
     main(mplreader, mpl_d, D_f, napOE_raa,
          combpolboo=True, plotboo=True, compstr='a')
 
-
     ## plotting SigmaMPL's version
-    csv_d = '/home/tianli/SOLAR_EMA_project/data/smmpl_E2/calibration/generated_profiles/201910230900_2e-7_overlap.csv'
+    csv_d = '/home/tianli/SOLAR_EMA_project/data/smmpl_E2/calibration/201910230900_2e-7_overlap.csv'
     r_ra, Oc_ra, delOc_ra = overlap_csvgen(
         mplreader, csv_d, D_f, napOE_raa
     )

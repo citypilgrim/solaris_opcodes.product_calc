@@ -34,6 +34,9 @@ def main(Ddir):
             Dcoeff * ((n_ara*1e3)**i) for i, Dcoeff in enumerate(Dcoeff_a)
         ], axis=0)
 
+        # handling values that are too high
+        corr_ara[corr_ara==np.inf] = np.nan
+
         return corr_ara
 
     return Dcoeff_a, D_f

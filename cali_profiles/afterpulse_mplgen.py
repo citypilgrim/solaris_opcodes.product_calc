@@ -13,6 +13,10 @@ _methodology = 'a'
 
 # supp func
 def _smooth_func(a, ra):
+    '''
+    Commented out for now so that we preserve the original data set instead of making it too
+    artificial
+    '''
     # # convert negative values to zero
     # a[a<0] = 0
     # # apply filter
@@ -234,18 +238,18 @@ if __name__ == '__main__':
         smmpl_boo = False
         if smmpl_boo:
             lidarname = 'smmpl_E2'
-            mpl_d = '/home/tianli/SOLAR_EMA_project/data/smmpl_E2/calibration/measured_profiles/201910170400_2e-7_afterpulse.mpl'
+            mpl_d = '/home/tianli/SOLAR_EMA_project/data/smmpl_E2/calibration/201910170400_2e-7_afterpulse.mpl'
             mplreader = smmpl_reader
         else:
             lidarname = 'mpl_S2S'
-            mpl_d = '/home/tianli/SOLAR_EMA_project/data/mpl_S2S/calibration/measured_profiles/201907161201_5e-7_afterpulse.mpl'
+            mpl_d = '/home/tianli/SOLAR_EMA_project/data/mpl_S2S/calibration/201907161201_5e-7_afterpulse.mpl'
             mplreader = mpl_reader
 
         D_d = FINDFILESFN(
             DEADTIMEPROFILE, SOLARISMPLCALIDIR.format(lidarname)
         )[0]
 
-        _, D_f = deadtime_genread(D_d)
+        _, D_f = deadtime_gen(D_d)
         napOEr_ra, napOE1_ra, napOE2_ra, delnapOE1s_ra, delnapOE2s_ra =\
             main(mplreader, mpl_d, D_f)
         # interpolating
@@ -273,19 +277,19 @@ if __name__ == '__main__':
         # lidarname = 'mpl_S2S'
         # mpl_fn = '/home/tianli/SOLAR_EMA_project/data/mpl_S2S/calibration/measured_profiles/201909231105_5e-7_afterpulse.mpl'
         lidarname = 'smmpl_E2'
-        mpl_fn = '/home/tianli/SOLAR_EMA_project/data/smmpl_E2/calibration/measured_profiles/201910170400_2e-7_afterpulse.mpl'
+        mpl_fn = '/home/tianli/SOLAR_EMA_project/data/smmpl_E2/calibration/201910170400_2e-7_afterpulse.mpl'
+        # mpl_fn = '/home/tianli/SOLAR_EMA_project/data/smmpl_E2/20210217/202102171400.mpl'
 
         D_d = FINDFILESFN(
             DEADTIMEPROFILE, SOLARISMPLCALIDIR.format(lidarname)
         )[0]
-        _, D_f = deadtime_genread(D_d)
+        _, D_f = deadtime_gen(D_d)
 
         # plotting to test
         fig, (ax3, ax4) = plt.subplots(nrows=2, sharex=True)
 
         ## sigmaMPL's values
-        # nap_fn = '/home/tianli/SOLAR_EMA_project/data/mpl_S2S/calibration/generated_profiles/201909231105_5e-7_afterpulse.csv'
-        nap_fn = '/home/tianli/SOLAR_EMA_project/data/smmpl_E2/calibration/generated_profiles/201910170400_2e-7_afterpulse.csv'
+        nap_fn = '/home/tianli/SOLAR_EMA_project/data/smmpl_E2/calibration/201910170400_2e-7_afterpulse.csv'
 
         r_ra, napOE2_ra, napOE1_ra = pd.read_csv(nap_fn, header=1).to_numpy().T
         ax3.plot(r_ra, napOE1_ra,  'kx', label='SigmaMPL')
